@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 世界杯 · 冠军之路</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background: #0a1628;
+    color: #e8e8e8;
+    min-width: 320px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ---- 头部 ---- */
+  .hero {
+    background: linear-gradient(135deg, #0d3b1e 0%, #1a5c2e 30%, #0d3b1e 60%, #0a1628 100%);
+    padding: 30px 20px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; top:0; left:0; right:0; bottom:0;
+    background: radial-gradient(ellipse at 20% 80%, rgba(255,215,0,.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero .trophy { font-size: 48px; line-height: 1; }
+  .hero h1 {
+    font-size: clamp(22px, 5vw, 36px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(180deg, #FFD700 0%, #DAA520 50%, #B8860B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 6px 0 4px;
+  }
+  .hero .sub {
+    font-size: clamp(12px, 2.5vw, 15px);
+    color: #9cb89c;
+    letter-spacing: 2px;
+  }
+  .hero .dates {
+    margin-top: 10px;
+    font-size: clamp(11px, 2vw, 13px);
+    color: #8fb08f;
+    display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+  }
+  .hero .dates span { background: rgba(255,255,255,.06); padding: 3px 12px; border-radius: 20px; }
+
+  /* ---- 积分榜 ---- */
+  .section-title {
+    font-size: clamp(16px, 3.5vw, 20px);
+    font-weight: 800;
+    letter-spacing: 2px;
+    padding: 20px 16px 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after {
+    content: ""; flex:1; height:1px;
+    background: linear-gradient(90deg, #2a5a3a, transparent);
+  }
+
+  .standings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    padding: 0 12px 16px;
+  }
+  .group-card {
+    background: linear-gradient(160deg, #142232 0%, #0e1a28 100%);
+    border: 1px solid #1e3a2e;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .group-card .group-header {
+    background: linear-gradient(90deg, #1a4a2a, #0e2e1a);
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 1px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .group-card .group-header .gp { font-size: 11px; color: #8fb88f; }
+  .group-card table { width:100%; border-collapse:collapse; }
+  .group-card th {
+    font-size: 10px; color: #6a8a6a; text-align: center; padding: 5px 4px 3px;
+    font-weight: 500; border-bottom: 1px solid #1a2e1a;
+  }
+  .group-card td {
+    font-size: clamp(11px, 2.2vw, 13px);
+    text-align: center; padding: 6px 4px;
+    border-bottom: 1px solid #0f1e13;
+  }
+  .group-card .team { text-align: left; font-weight: 600; white-space: nowrap; }
+  .group-card .qualify { background: rgba(255,215,0,.08); }
+  .group-card .qualify .team::before { content: "⭐ "; }
+  .pts { font-weight: 800; color: #FFD700; }
+  .dash { color: #3a5a3a; }
+
+  /* ---- 比赛结果 ---- */
+  .results-section {
+    padding: 0 12px 16px;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  .match-card {
+    background: #111d2b;
+    border: 1px solid #1a2e22;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 10px;
+    font-size: clamp(11px, 2.2vw, 13px);
+  }
+  .match-card .left, .match-card .right {
+    flex: 1; text-align: center; font-weight: 600;
+  }
+  .match-card .score {
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #1a4a2a, #0e2e1a);
+    padding: 4px 14px;
+    border-radius: 6px;
+    font-weight: 900;
+    font-size: clamp(14px, 3vw, 16px);
+    color: #FFD700;
+    letter-spacing: 2px;
+  }
+  .match-card .meta {
+    font-size: 10px; color: #5a7a5a; text-align: center;
+  }
+  /* 手机：分阶段折叠 + 紧凑列表 */
+  .results-mobile { display: none; }
+  .results-mobile-hint {
+    display: none;
+    font-size: 11px;
+    color: #6a9a6a;
+    padding: 0 16px 8px;
+  }
+  .results-group {
+    margin: 0 12px 8px;
+    border: 1px solid #1a2e22;
+    border-radius: 10px;
+    background: #111d2b;
+    overflow: hidden;
+  }
+  .results-group summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, #1a3a28, #111d2b);
+    user-select: none;
+  }
+  .results-group summary::-webkit-details-marker { display: none; }
+  .results-group summary::after {
+    content: '▸';
+    color: #6a9a6a;
+    font-size: 12px;
+    transition: transform .2s;
+  }
+  .results-group[open] summary::after { transform: rotate(90deg); }
+  .results-group .count {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8fb08f;
+    margin-right: 8px;
+  }
+  .results-compact-list { border-top: 1px solid #0f1e13; }
+  .match-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 10px;
+    border-bottom: 1px solid #0f1e13;
+    font-size: 12px;
+  }
+  .match-row:last-child { border-bottom: none; }
+  .match-row .team-a { text-align: right; font-weight: 600; }
+  .match-row .team-b { text-align: left; font-weight: 600; }
+  .match-row .score-sm {
+    color: #FFD700;
+    font-weight: 900;
+    font-size: 13px;
+    white-space: nowrap;
+    padding: 2px 8px;
+    background: rgba(26,74,42,.5);
+    border-radius: 4px;
+  }
+  .match-row .row-meta {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 9px;
+    color: #5a7a5a;
+    margin-top: -4px;
+  }
+  @media (max-width: 768px) {
+    .results-mobile-hint { display: block; }
+    .results-desktop { display: none !important; }
+    .results-mobile { display: block; padding-bottom: 8px; }
+  }
+
+  /* ---- 淘汰赛漏斗 ---- */
+  /* ---- 冠军预测 ---- */
+  .predict-section {
+    padding: 0 12px 8px;
+  }
+  .predict-table {
+    width: 100%; border-collapse: collapse;
+    background: linear-gradient(160deg, #142232 0%, #0e1a28 100%);
+    border: 1px solid #1e3a2e;
+    border-radius: 8px; overflow: hidden;
+  }
+  .predict-table th {
+    background: linear-gradient(90deg, #1a4a2a, #0e2e1a);
+    padding: 8px 6px; font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; text-align: center;
+  }
+  .predict-table td {
+    padding: 6px 4px; text-align: center;
+    border-bottom: 1px solid #0f1e13;
+    font-size: clamp(10px, 2vw, 12px);
+  }
+  .predict-table .stage {
+    font-weight: 700; color: #FFD700; text-align: left; padding-left: 12px;
+    white-space: nowrap;
+  }
+  .predict-table input {
+    background: #0a1628; border: 1px solid #2a4a2a; border-radius: 4px;
+    color: #e8e8e8; padding: 3px 6px; width: 100%;
+    font-size: clamp(9px, 1.8vw, 11px); text-align: center;
+    outline: none; transition: border-color .2s;
+  }
+  .predict-table input:focus { border-color: #FFD700; }
+  .predict-table .champ-row td { background: rgba(255,215,0,.05); }
+  .predict-table .champ-row input {
+    border-color: #FFD700; font-weight: 800; color: #FFD700;
+    font-size: clamp(11px, 2vw, 14px);
+  }
+
+  .bracket-title {
+    font-size: clamp(16px, 3.5vw, 20px);
+    font-weight: 800; letter-spacing: 2px;
+    padding: 8px 16px 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .bracket-title::after {
+    content: ""; flex:1; height:1px;
+    background: linear-gradient(90deg, #2a5a3a, transparent);
+  }
+
+  .funnel-wrap {
+    padding: 16px 4px 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bracket-tap-hint {
+    display: none;
+    font-size: 11px;
+    color: #6a9a6a;
+    text-align: center;
+    padding: 0 16px 6px;
+  }
+  .bracket-preview {
+    position: relative;
+    margin: 0 8px 8px;
+    border: 1px solid #1a3a28;
+    border-radius: 10px;
+    background: #0c1520;
+    overflow: hidden;
+  }
+  .bracket-preview-inner {
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+  }
+  .bracket-preview.is-scaled {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bracket-preview.is-scaled .funnel-wrap {
+    overflow: visible;
+    padding: 8px 0 12px;
+    transform-origin: top center;
+  }
+  .bracket-preview-badge {
+    display: none;
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 10px;
+    color: #8fb08f;
+    background: rgba(10,22,40,.88);
+    border: 1px solid #2a4a2a;
+    border-radius: 12px;
+    padding: 3px 10px;
+    pointer-events: none;
+  }
+  @media (max-width: 900px) {
+    .bracket-tap-hint { display: block; }
+    .bracket-preview.is-scaled .bracket-preview-badge { display: block; }
+    .bracket-preview.is-scaled .funnel-wrap { pointer-events: none; }
+  }
+  /* 全屏横屏查看 */
+  .bracket-fullscreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: #060d18;
+    flex-direction: column;
+  }
+  .bracket-fullscreen.open { display: flex; }
+  .bracket-fs-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #0d1a14;
+    border-bottom: 1px solid #1a3a28;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .bracket-fs-close {
+    background: #1a3a28;
+    border: 1px solid #2a5a3a;
+    color: #e8e8e8;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .bracket-fs-body {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bracket-fs-viewport {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: min-content;
+  }
+  .bracket-fs-viewport .funnel-wrap {
+    overflow: visible;
+    padding: 0;
+    transform-origin: center center;
+  }
+  .bracket-fs-viewport .funnel {
+    min-width: 1000px;
+  }
+  .funnel {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 0.6fr 1fr 1fr 1fr 1fr 1fr;
+    gap: 4px 6px;
+    min-width: 1000px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+  .funnel .round-label {
+    grid-row: 1;
+    text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    padding: 4px 0; border-radius: 3px;
+  }
+  .funnel .left-label { background: rgba(74,120,74,.25); color: #8fbf8f; }
+  .funnel .right-label { background: rgba(74,120,74,.25); color: #8fbf8f; }
+  .funnel .center-label {
+    background: linear-gradient(135deg, #1a4a2a, #0e2e1a);
+    color: #FFD700; font-size: 11px;
+  }
+
+  .funnel .slot {
+    position: relative;
+    z-index: 2;
+    background: #111d2b;
+    border: 1px solid #1a3a28;
+    border-radius: 4px;
+    font-size: clamp(9px, 1.6vw, 11px);
+    text-align: center;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 28px;
+    padding: 3px 4px;
+    white-space: nowrap;
+  }
+  .funnel .slot.locked {
+    background: #0d1a14;
+    border-color: #1a3a28;
+    color: #8fb08f;
+  }
+  .funnel .slot.pred {
+    color: #c8e8c8;
+  }
+  .funnel .slot.tbd { color: #4a6a4a; border-style: dashed; }
+  .funnel .slot.final {
+    border-color: #FFD700;
+    background: linear-gradient(135deg, #1a3e1a, #0a1e0a);
+    font-weight: 800;
+    color: #FFD700;
+    font-size: clamp(11px, 2vw, 15px);
+    min-height: 48px;
+  }
+  .funnel .champion {
+    position: relative;
+    z-index: 2;
+    grid-column: 6;
+    border: 2px solid #FFD700;
+    background: linear-gradient(135deg, #1a3e1a, #0a2e0a);
+    box-shadow: 0 0 20px rgba(255,215,0,.15);
+    color: #FFD700;
+    font-weight: 900;
+    font-size: clamp(12px, 2.2vw, 16px);
+    min-height: 56px;
+    letter-spacing: 2px;
+  }
+
+  /* 连接线：置于格子下层，且不占有球队格子 */
+  .funnel .bracket-conn {
+    position: relative;
+    z-index: 0;
+    align-self: center;
+    height: 1px;
+    background: #2a4a2a;
+    pointer-events: none;
+  }
+  .funnel .bracket-conn.conn-r { margin-right: -4px; }
+  .funnel .bracket-conn.conn-l { margin-left: -4px; }
+
+  @media (max-width: 640px) {
+    .standings-grid { grid-template-columns: 1fr; }
+    .results-grid { grid-template-columns: 1fr; }
+    .funnel { min-width: 800px; }
+    .funnel .slot { font-size: 8px; min-height: 22px; padding: 2px 3px; }
+    .funnel .champion { font-size: 11px; min-height: 40px; }
+  }
+  .footer {
+    text-align: center; padding: 20px;
+    font-size: 11px; color: #3a5a3a;
+  }
+  .refresh-status { font-size: 10px; margin-left: 6px; }
+  .refresh-status.loading { color: #FFD700; }
+  .refresh-status.ok { color: #6a9a6a; }
+  .refresh-status.error { color: #c0392b; }
+  .live-badge {
+    display: inline-block;
+    background: #c0392b;
+    color: #fff;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    animation: pulse 2s infinite;
+    margin-left: 4px;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .6; }
+  }
+
+  /* ---- 底栏时间线 ---- */
+  .timeline {
+    display: flex; overflow-x: auto; gap: 6px;
+    padding: 8px 12px 16px;
+    scroll-snap-type: x proximity;
+  }
+  .timeline .day {
+    flex: 0 0 auto;
+    background: #111d2b;
+    border: 1px solid #1a2e22;
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-width: 100px;
+    scroll-snap-align: start;
+  }
+  .timeline .day .date-label {
+    font-size: 9px; color: #5a7a5a; margin-bottom: 2px;
+  }
+  .timeline .day .match-mini {
+    font-size: 10px; line-height: 1.5;
+  }
+
+  /* ---- 底部 ---- */
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a5c1a, #2d7d2d);
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: transform 0.2s, opacity 0.3s;
+}
+.back-to-top:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #2d7d2d, #3d9d3d);
+}
+.back-to-top.show {
+  display: flex;
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="trophy">🏆</div>
+  <h1>冠军之路</h1>
+  <div class="sub">2026 美加墨世界杯 · 赛程记录表</div>
+  <div class="dates">
+    <span>🇲🇽🇨🇦🇺🇸 三国联办</span>
+    <span>📅 6.12 → 7.19</span>
+    <span>🏟 48 队 · 104 场</span>
+    <span><span class="live-badge">LIVE</span> <span id="liveBadge">加载中…</span></span>
+  </div>
+</div>
+
+<!-- ==================== 淘汰赛对阵图 ==================== -->
+<div class="bracket-title">🏟 淘汰赛对阵图</div>
+<p class="bracket-tap-hint">📱 缩略图可览全貌，点击放大全屏横屏查看</p>
+<div class="bracket-preview" data-bracket-title="🏟 淘汰赛对阵图">
+  <div class="bracket-preview-inner">
+    <div class="funnel-wrap">
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </div>
+  <div class="bracket-preview-badge">🔍 点击放大</div>
+</div>
+
+<!-- ==================== 已完赛比分 ==================== -->
+<div class="section-title">⚽ 已完赛比分（小组赛 + 淘汰赛）</div>
+<p class="results-mobile-hint">📱 按阶段折叠，默认展开最新赛果</p>
+<div class="results-section">
+  <div class="results-grid results-desktop" id="results"></div>
+  <div class="results-mobile" id="resultsMobile"></div>
+</div>
+
+<!-- ==================== 12 组积分榜 ==================== -->
+<div class="section-title">📊 小组赛积分榜</div>
+<div class="standings-grid" id="standings"></div>
+
+<!-- ==================== 冠军预测 ==================== -->
+<div class="bracket-title">🔮 冠军预测 <span style="font-weight:400;font-size:11px;color:#5a7a5a;margin-left:8px">7.7 重置 · 灰底=赛果 · 白底=预测</span></div>
+<p class="bracket-tap-hint">📱 缩略图可览全貌，点击放大全屏横屏查看</p>
+<div class="bracket-preview" data-bracket-title="🔮 冠军预测">
+  <div class="bracket-preview-inner">
+    <div class="funnel-wrap">
+      <div class="funnel" id="predictFunnel"></div>
+    </div>
+  </div>
+  <div class="bracket-preview-badge">🔍 点击放大</div>
+</div>
+
+<div class="section-title">📅 后续赛程预告（16强 → 决赛）</div>
+<div class="timeline" id="timeline"></div>
+
+<div class="footer">
+  <span id="footerMeta">加载数据中…</span><span id="refreshStatus" class="refresh-status"></span>
+</div>
+
+<div class="bracket-fullscreen" id="bracketFullscreen">
+  <div class="bracket-fs-header">
+    <span id="bracketFsTitle">对阵图</span>
+    <button type="button" class="bracket-fs-close" id="bracketFsClose">✕ 关闭</button>
+  </div>
+  <div class="bracket-fs-body" id="bracketFsBody"></div>
+</div>
+
+<script>
+// ===== 动态数据：data.json =====
+let wcData = null;
+const REFRESH_MS = 15 * 60 * 1000;
+
+function formatUpdated(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, '0');
+  return '20' + p(d.getFullYear()%100) + '.' + p(d.getMonth()+1) + '.' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function setRefreshState(state) {
+  const el = document.getElementById('refreshStatus');
+  if (!el) return;
+  const map = {loading:'刷新中…', ok:'已同步', error:'刷新失败'};
+  el.textContent = map[state] || '';
+  el.className = 'refresh-status' + (state ? ' ' + state : '');
+}
+
+function updateMeta(data) {
+  const lb = document.getElementById('liveBadge');
+  if (lb && data.liveBadge) lb.textContent = data.liveBadge;
+  const fm = document.getElementById('footerMeta');
+  if (fm) fm.textContent = '数据更新于 ' + formatUpdated(data.updatedAt) + ' · ' + (data.footerNote||'') + ' · 预测静态 · 每15分钟自动刷新';
+}
+
+function renderStandings(groups) {
+const stEl = document.getElementById('standings');
+stEl.innerHTML = groups.map(g => {
+  const maxP = Math.max(...g.teams.map(t => t.p));
+  const roundText = maxP >= 3 ? '已完成' : `第${maxP}轮 / 共3轮`;
+  const rows = [...g.teams].sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)
+    .map((t,i) => {
+      const cls = t.q && i<2 ? 'qualify' : '';
+      const gd = t.gf-t.ga;
+      return `<tr class="${cls}"><td>${i+1}</td><td class="team">${t.name}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${gd>=0?'+':''}${gd}</td><td class="pts">${t.pts}</td></tr>`;
+    }).join('');
+  return `<div class="group-card"><div class="group-header"><span>🏴 ${g.name} 组</span><span class="gp">${roundText}</span></div><table><tr><th style="width:14px">#</th><th style="text-align:left">球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进球</th><th>失球</th><th>净</th><th>分</th></tr>${rows}</table></div>`;
+}).join('');
+}
+
+// ===== 共享对阵图渲染 =====
+const ROUND_LABELS = [
+  {col:1,text:'32强',cls:'left-label'},{col:2,text:'16强',cls:'left-label'},{col:3,text:'1/4决赛',cls:'left-label'},
+  {col:4,text:'半决赛',cls:'left-label'},{col:5,text:'',cls:'left-label'},{col:6,text:'🏆 冠军',cls:'center-label'},
+  {col:7,text:'',cls:'right-label'},{col:8,text:'半决赛',cls:'right-label'},{col:9,text:'1/4决赛',cls:'right-label'},
+  {col:10,text:'16强',cls:'right-label'},{col:11,text:'32强',cls:'right-label'},
+];
+
+function bracketLabels(isPredict) {
+  return ROUND_LABELS.map(r => {
+    const t = isPredict && r.col===6 ? '🔮 冠军' : r.text;
+    return `<div style="grid-column:${r.col};grid-row:1" class="round-label ${r.cls}">${t}</div>`;
+  }).join('');
+}
+
+function bracketConnectors() {
+  // 只在空白汇合行画线；半决赛列(4/8)第9行有球队格子，不画
+  let h = '';
+  for(let i=0;i<4;i++) h += `<div class="bracket-conn conn-r" style="grid-column:1;grid-row:${3+i*4}"></div>`;
+  for(let i=0;i<2;i++) h += `<div class="bracket-conn conn-r" style="grid-column:2;grid-row:${5+i*8}"></div>`;
+  h += `<div class="bracket-conn conn-r" style="grid-column:3;grid-row:9"></div>`;
+  for(let i=0;i<4;i++) h += `<div class="bracket-conn conn-l" style="grid-column:11;grid-row:${3+i*4}"></div>`;
+  for(let i=0;i<2;i++) h += `<div class="bracket-conn conn-l" style="grid-column:10;grid-row:${5+i*8}"></div>`;
+  h += `<div class="bracket-conn conn-l" style="grid-column:9;grid-row:9"></div>`;
+  return h;
+}
+
+const slotDiv = (col, row, text, cls='') =>
+  `<div style="grid-column:${col};grid-row:${row}" class="slot ${cls}">${text}</div>`;
+
+function renderPrediction() {
+// ===== 冠军预测漏斗（7.7 重置）=====
+const pFunnel = document.getElementById('predictFunnel');
+const locked = new Set(['1-2','1-4','1-6','1-8','1-10','1-12','1-14','1-16',
+  '2-3','2-7','2-11','2-15','11-2','11-4','11-6','11-8','11-10','11-12','11-14','11-16']);
+
+const leftPred = {
+  r32: ['🇨🇦 加拿大','🇧🇷 巴西','🇵🇾 巴拉圭','🇲🇦 摩洛哥','🇳🇴 挪威','🇫🇷 法国','🇲🇽 墨西哥','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰'],
+  r16: ['🇲🇦 摩洛哥','🇫🇷 法国','🇳🇴 挪威','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰'],
+  qf:  ['🇫🇷 法国','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰'],
+  sf:  ['🇫🇷 法国'],
+};
+const rightPred = {
+  r32: ['🇧🇪 比利时','🇺🇸 美国','🇪🇸 西班牙','🇵🇹 葡萄牙','🇨🇭 瑞士','🇪🇬 埃及','🇦🇷 阿根廷','🇨🇴 哥伦比亚'],
+  r16: ['🇪🇸 西班牙','🇺🇸 美国','🇦🇷 阿根廷','🇨🇴 哥伦比亚'],
+  qf:  ['🇪🇸 西班牙','🇦🇷 阿根廷'],
+  sf:  ['🇦🇷 阿根廷'],
+};
+const championPred = '🇫🇷 法国 🏆';
+
+const predCell = (col, row, val, extra='') => {
+  const key = col+'-'+row;
+  const isLocked = locked.has(key);
+  if (extra==='champ') return `<div style="grid-column:${col};grid-row:${row}" class="slot champion">${val}</div>`;
+  return slotDiv(col, row, val, isLocked ? 'locked' : 'pred');
+};
+
+let pCells = bracketLabels(true);
+// 先画连接线（底层），再画格子（上层）
+pCells += bracketConnectors();
+for(let i=0;i<8;i++) pCells += predCell(1, 2+i*2, leftPred.r32[i]);
+for(let i=0;i<4;i++) pCells += predCell(2, 3+i*4, leftPred.r16[i]);
+for(let i=0;i<2;i++) pCells += predCell(3, 5+i*8, leftPred.qf[i]);
+pCells += predCell(4, 9, leftPred.sf[0]);
+pCells += slotDiv(5, 9, '→', '');
+for(let i=0;i<8;i++) pCells += predCell(11, 2+i*2, rightPred.r32[i]);
+for(let i=0;i<4;i++) pCells += predCell(10, 3+i*4, rightPred.r16[i]);
+for(let i=0;i<2;i++) pCells += predCell(9, 5+i*8, rightPred.qf[i]);
+pCells += predCell(8, 9, rightPred.sf[0]);
+pCells += slotDiv(7, 9, '←', '');
+pCells += predCell(6, 9, championPred, 'champ');
+pFunnel.innerHTML = pCells;
+}
+
+// render results
+function matchStage(m) {
+  if (m.g === '16强') return '16强';
+  if (m.g === '32强') return '32强';
+  const day = parseInt(m.d.split('.')[1], 10);
+  if (day <= 18) return '小组赛第1轮';
+  if (day <= 24) return '小组赛第2轮';
+  return '小组赛第3轮';
+}
+const STAGE_ORDER = ['16强','32强','小组赛第3轮','小组赛第2轮','小组赛第1轮'];
+
+function renderResults(matches) {
+const resEl = document.getElementById('results');
+resEl.innerHTML = matches.map(m => `<div class="match-card">
+  <div class="left">${m.a}</div><div class="score">${m.s}</div><div class="right">${m.b}</div>
+  <div class="meta" style="flex:0 0 100%;margin-top:4px">${m.d} ${m.t} · ${m.g}${m.g.length===1?'组':''}</div>
+</div>`).join('');
+
+const mobileEl = document.getElementById('resultsMobile');
+const grouped = {};
+matches.forEach(m => {
+  const st = matchStage(m);
+  (grouped[st] = grouped[st] || []).push(m);
+});
+mobileEl.innerHTML = STAGE_ORDER.filter(st => grouped[st]).map(st => {
+  const list = grouped[st];
+  const open = st === '16强' ? ' open' : '';
+  const rows = list.map(m => `<div class="match-row">
+    <span class="team-a">${m.a}</span>
+    <span class="score-sm">${m.s}</span>
+    <span class="team-b">${m.b}</span>
+    <div class="row-meta">${m.d} ${m.t} · ${m.g}${m.g.length===1?'组':''}</div>
+  </div>`).join('');
+  return `<details class="results-group"${open}>
+    <summary><span>${st}</span><span class="count">${list.length} 场</span></summary>
+    <div class="results-compact-list">${rows}</div>
+  </details>`;
+}).join('');
+}
+
+function renderKnockout(k) {
+  const funnelEl = document.getElementById('funnel');
+  let cells = bracketLabels(false);
+  cells += bracketConnectors();
+  for(let i=0;i<8;i++) cells += slotDiv(1, 2+i*2, k.leftR32[i], '');
+  for(let i=0;i<4;i++) cells += slotDiv(2, 3+i*4, k.leftR16[i], '');
+  cells += slotDiv(3, 5, k.leftQF[0], 'tbd');
+  cells += slotDiv(3, 13, k.leftQF[1], 'tbd');
+  cells += slotDiv(4, 9, k.leftSF, 'tbd');
+  cells += slotDiv(5, 9, '→', '');
+  for(let i=0;i<8;i++) cells += slotDiv(11, 2+i*2, k.rightR32[i], '');
+  for(let i=0;i<4;i++) cells += slotDiv(10, 3+i*4, k.rightR16[i], k.rightR16[i].includes(' vs ')?'tbd':'');
+  cells += slotDiv(9, 5, k.rightQF[0], 'tbd');
+  cells += slotDiv(9, 13, k.rightQF[1], 'tbd');
+  cells += slotDiv(8, 9, k.rightSF, 'tbd');
+  cells += slotDiv(7, 9, '←', '');
+  cells += '<div style="grid-column:6;grid-row:9" class="slot champion">' + (k.champion||'🏆 ?') + '</div>';
+  funnelEl.innerHTML = cells;
+}
+
+function renderUpcoming(upcoming) {
+  const tlEl = document.getElementById('timeline');
+  tlEl.innerHTML = upcoming.map(u =>
+    '<div class="day"><div class="date-label">📅 ' + u.d + ' ' + u.t + '</div><div class="match-mini">' + u.m + ' <span style="color:#5a7a5a;font-size:9px">' + u.g + '</span></div></div>'
+  ).join('');
+}
+
+function renderAll(data) {
+  wcData = data;
+  updateMeta(data);
+  renderStandings(data.groups);
+  renderResults(data.matches);
+  renderKnockout(data.knockout);
+  renderUpcoming(data.upcoming);
+  layoutBracketPreviews();
+}
+
+async function loadData(silent) {
+  if (!silent) setRefreshState('loading');
+  try {
+    const res = await fetch('data.json?ts=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    if (!wcData || data.updatedAt !== wcData.updatedAt) renderAll(data);
+    else updateMeta(data);
+    if (!silent) { setRefreshState('ok'); setTimeout(() => setRefreshState(''), 2000); }
+  } catch (e) {
+    if (!silent) setRefreshState('error');
+    console.warn('loadData', e);
+  }
+}
+
+// 手机：缩略图等比缩进一屏；点击全屏横屏放大
+function layoutBracketPreviews() {
+  const mobile = window.innerWidth <= 900;
+  document.querySelectorAll('.bracket-preview').forEach(preview => {
+    const inner = preview.querySelector('.bracket-preview-inner');
+    const wrap = preview.querySelector('.funnel-wrap');
+    const funnel = preview.querySelector('.funnel');
+    if (!inner || !wrap || !funnel) return;
+
+    wrap.style.transform = '';
+    inner.style.height = '';
+
+    if (!mobile) {
+      preview.classList.remove('is-scaled');
+      return;
+    }
+
+    const fw = funnel.offsetWidth || funnel.scrollWidth || 1000;
+    const fh = funnel.offsetHeight || funnel.scrollHeight || 480;
+    const pw = preview.clientWidth - 4;
+    const scale = pw / fw;
+    inner.style.height = Math.ceil(fh * scale) + 'px';
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.transformOrigin = 'top center';
+    preview.classList.add('is-scaled');
+  });
+}
+
+function layoutFullscreenBracket() {
+  const fs = document.getElementById('bracketFullscreen');
+  if (!fs || !fs.classList.contains('open')) return;
+  const viewport = fs.querySelector('.bracket-fs-viewport');
+  const wrap = fs.querySelector('.funnel-wrap');
+  const funnel = fs.querySelector('.funnel');
+  if (!viewport || !wrap || !funnel) return;
+
+  wrap.style.transform = '';
+  viewport.style.height = '';
+  viewport.style.width = '';
+
+  const fw = funnel.offsetWidth || 1000;
+  const fh = funnel.offsetHeight || 480;
+  const mobile = window.innerWidth <= 900;
+  const portrait = window.matchMedia('(orientation: portrait)').matches;
+  const headerH = 48;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight - headerH;
+
+  if (mobile && portrait) {
+    const scale = Math.min(vw / fh, vh / fw) * 0.94;
+    viewport.style.height = Math.ceil(fw * scale) + 'px';
+    wrap.style.transform = 'rotate(90deg) scale(' + scale + ')';
+    wrap.style.transformOrigin = 'center center';
+  } else {
+    const scale = Math.min((vw - 24) / fw, (vh - 16) / fh, 1);
+    viewport.style.height = Math.ceil(fh * scale) + 'px';
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.transformOrigin = 'top center';
+  }
+}
+
+function openBracketFullscreen(preview) {
+  const funnel = preview.querySelector('.funnel');
+  if (!funnel) return;
+  const fs = document.getElementById('bracketFullscreen');
+  const body = document.getElementById('bracketFsBody');
+  document.getElementById('bracketFsTitle').textContent = preview.dataset.bracketTitle || '对阵图';
+  body.innerHTML = '<div class="bracket-fs-viewport"><div class="funnel-wrap">' + funnel.outerHTML + '</div></div>';
+  fs.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  layoutFullscreenBracket();
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(function(){});
+  }
+}
+
+function closeBracketFullscreen() {
+  const fs = document.getElementById('bracketFullscreen');
+  if (!fs) return;
+  fs.classList.remove('open');
+  document.getElementById('bracketFsBody').innerHTML = '';
+  document.body.style.overflow = '';
+  if (screen.orientation && screen.orientation.unlock) {
+    screen.orientation.unlock().catch(function(){});
+  }
+}
+
+document.querySelectorAll('.bracket-preview').forEach(function(preview) {
+  preview.addEventListener('click', function() {
+    if (window.innerWidth <= 900) openBracketFullscreen(preview);
+  });
+});
+document.getElementById('bracketFsClose').addEventListener('click', closeBracketFullscreen);
+document.getElementById('bracketFullscreen').addEventListener('click', function(e) {
+  if (e.target === this) closeBracketFullscreen();
+});
+
+window.addEventListener('resize', function() {
+  layoutBracketPreviews();
+  layoutFullscreenBracket();
+});
+window.addEventListener('orientationchange', function() {
+  setTimeout(function() {
+    layoutBracketPreviews();
+    layoutFullscreenBracket();
+  }, 150);
+});
+
+
+renderPrediction();
+loadData(false);
+setInterval(() => loadData(true), REFRESH_MS);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') loadData(true);
+});
+
+// ========== 回到顶部 ==========
+function scrollToTop(){
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+window.addEventListener('scroll',function(){
+  var btn=document.querySelector('.back-to-top');
+  if(btn) btn.classList.toggle('show', window.scrollY>300);
+});
+</script>
+
+<div class="back-to-top" onclick="scrollToTop()">⬆</div>
+
+</body>
+</html>
