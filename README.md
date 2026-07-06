@@ -2,6 +2,9 @@
 
 2026 美加墨世界杯赛程追踪页，线上地址：https://worldcup.xiandan.me
 
+**完整部署文档**（DNS / Caddy / cron 自动更新 / 排错）：见 Seafile  
+`私人资料库/Seafile/世界杯赛程-worldcup.xiandan.me-部署实战记录.md`
+
 ## 结构
 
 ```
