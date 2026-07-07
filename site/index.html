@@ -329,20 +329,39 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     padding: 10px 14px;
     background: #0d1a14;
     border-bottom: 1px solid #1a3a28;
     font-size: 14px;
     font-weight: 700;
   }
+  .bracket-fs-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .bracket-fs-hint {
+    font-size: 10px;
+    font-weight: 400;
+    color: #6a9a6a;
+  }
+  .bracket-fs-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .bracket-fs-save,
   .bracket-fs-close {
     background: #1a3a28;
     border: 1px solid #2a5a3a;
     color: #e8e8e8;
     border-radius: 8px;
-    padding: 6px 14px;
+    padding: 6px 12px;
     font-size: 13px;
     cursor: pointer;
+    white-space: nowrap;
   }
   .bracket-fs-body {
     flex: 1;
@@ -352,6 +371,9 @@
     justify-content: center;
     padding: 4px;
     min-height: 0;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   .bracket-fs-viewport {
     display: flex;
@@ -480,6 +502,96 @@
     .bracket-fs-viewport .funnel .slot { font-size: 15px; min-height: 36px; }
     .bracket-fs-viewport .funnel .champion { font-size: 21px; min-height: 66px; }
   }
+
+  /* 导出图片：离屏渲染，字号适中 */
+  .bracket-capture {
+    position: fixed;
+    left: -12000px;
+    top: 0;
+    background: #060d18;
+    padding: 18px 14px 22px;
+    z-index: -1;
+  }
+  .bracket-capture-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: #e8e8e8;
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+  }
+  .bracket-capture .funnel {
+    min-width: 1000px;
+    gap: 5px 6px;
+  }
+  .bracket-capture .funnel .round-label { font-size: 13px; }
+  .bracket-capture .funnel .center-label { font-size: 14px; }
+  .bracket-capture .funnel .slot { font-size: 13px; min-height: 32px; padding: 4px 6px; }
+  .bracket-capture .funnel .champion { font-size: 18px; min-height: 58px; }
+
+  .bracket-save-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(0,0,0,.88);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .bracket-save-overlay.open { display: flex; }
+  .bracket-save-panel {
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .bracket-save-panel img {
+    max-width: 100%;
+    max-height: calc(100vh - 120px);
+    border-radius: 8px;
+    border: 1px solid #2a5a3a;
+    -webkit-touch-callout: default;
+  }
+  .bracket-save-hint {
+    font-size: 14px;
+    color: #8fb08f;
+    text-align: center;
+  }
+  .bracket-save-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .bracket-save-actions button,
+  .bracket-save-actions a {
+    background: #1a3a28;
+    border: 1px solid #2a5a3a;
+    color: #e8e8e8;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .bracket-save-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    background: rgba(13,26,20,.95);
+    border: 1px solid #2a5a3a;
+    color: #c8e8c8;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 3100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .bracket-save-toast.show { opacity: 1; }
   .footer {
     text-align: center; padding: 20px;
     font-size: 11px; color: #3a5a3a;
@@ -569,7 +681,7 @@
 
 <!-- ==================== 淘汰赛对阵图 ==================== -->
 <div class="bracket-title">🏟 淘汰赛对阵图</div>
-<p class="bracket-tap-hint">📱 缩略图可览全貌，点击放大全屏横屏查看</p>
+<p class="bracket-tap-hint">📱 点击放大全屏 · 长按或点「保存」可存为图片</p>
 <div class="bracket-preview" data-bracket-title="🏟 淘汰赛对阵图">
   <div class="bracket-preview-inner">
     <div class="funnel-wrap">
@@ -596,7 +708,7 @@
 
 <!-- ==================== 冠军预测 ==================== -->
 <div class="bracket-title">🔮 冠军预测 <span style="font-weight:400;font-size:11px;color:#5a7a5a;margin-left:8px">7.7 重置 · 灰底=赛果 · 白底=预测</span></div>
-<p class="bracket-tap-hint">📱 缩略图可览全貌，点击放大全屏横屏查看</p>
+<p class="bracket-tap-hint">📱 点击放大全屏 · 长按或点「保存」可存为图片</p>
 <div class="bracket-preview" data-bracket-title="🔮 冠军预测">
   <div class="bracket-preview-inner">
     <div class="funnel-wrap">
@@ -612,11 +724,29 @@
 
 <div class="bracket-fullscreen" id="bracketFullscreen">
   <div class="bracket-fs-header">
-    <span id="bracketFsTitle">对阵图</span>
-    <button type="button" class="bracket-fs-close" id="bracketFsClose">✕ 关闭</button>
+    <div class="bracket-fs-header-left">
+      <span id="bracketFsTitle">对阵图</span>
+      <span class="bracket-fs-hint">长按对阵图可保存为图片</span>
+    </div>
+    <div class="bracket-fs-actions">
+      <button type="button" class="bracket-fs-save" id="bracketFsSave">💾 保存</button>
+      <button type="button" class="bracket-fs-close" id="bracketFsClose">✕ 关闭</button>
+    </div>
   </div>
   <div class="bracket-fs-body" id="bracketFsBody"></div>
 </div>
+
+<div class="bracket-save-overlay" id="bracketSaveOverlay">
+  <div class="bracket-save-panel">
+    <img id="bracketSaveImg" alt="对阵图" />
+    <p class="bracket-save-hint">长按图片保存到相册</p>
+    <div class="bracket-save-actions">
+      <a id="bracketSaveDownload" href="#" download="worldcup-bracket.png">下载图片</a>
+      <button type="button" id="bracketSaveClose">关闭</button>
+    </div>
+  </div>
+</div>
+<div class="bracket-save-toast" id="bracketSaveToast">正在生成图片…</div>
 
 <script>
 // ===== 动态数据：data.json =====
@@ -914,9 +1044,129 @@ function closeBracketFullscreen() {
   fs.classList.remove('open');
   document.getElementById('bracketFsBody').innerHTML = '';
   document.body.style.overflow = '';
+  clearBracketLongPress();
   if (screen.orientation && screen.orientation.unlock) {
     screen.orientation.unlock().catch(function(){});
   }
+}
+
+let htmlToImageMod = null;
+let bracketLongPressTimer = null;
+let bracketCapturing = false;
+const BRACKET_LONG_PRESS_MS = 550;
+
+async function getHtmlToImage() {
+  if (!htmlToImageMod) {
+    htmlToImageMod = await import('https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/+esm');
+  }
+  return htmlToImageMod;
+}
+
+function showBracketToast(msg) {
+  const el = document.getElementById('bracketSaveToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideBracketToast() {
+  const el = document.getElementById('bracketSaveToast');
+  if (el) el.classList.remove('show');
+}
+
+function showBracketSaveOverlay(dataUrl, title) {
+  const overlay = document.getElementById('bracketSaveOverlay');
+  const img = document.getElementById('bracketSaveImg');
+  const link = document.getElementById('bracketSaveDownload');
+  if (!overlay || !img || !link) return;
+  const safe = (title || '对阵图').replace(/[\\/:*?"<>|]/g, '_');
+  img.src = dataUrl;
+  link.href = dataUrl;
+  link.download = safe + '.png';
+  overlay.classList.add('open');
+}
+
+function closeBracketSaveOverlay() {
+  const overlay = document.getElementById('bracketSaveOverlay');
+  const img = document.getElementById('bracketSaveImg');
+  if (overlay) overlay.classList.remove('open');
+  if (img) img.src = '';
+}
+
+async function captureBracketImage() {
+  if (bracketCapturing) return;
+  const fs = document.getElementById('bracketFullscreen');
+  if (!fs || !fs.classList.contains('open')) return;
+  const funnel = fs.querySelector('.bracket-fs-viewport .funnel');
+  if (!funnel) return;
+
+  bracketCapturing = true;
+  showBracketToast('正在生成图片…');
+  const title = document.getElementById('bracketFsTitle').textContent || '对阵图';
+
+  const holder = document.createElement('div');
+  holder.className = 'bracket-capture';
+  const titleEl = document.createElement('div');
+  titleEl.className = 'bracket-capture-title';
+  titleEl.textContent = title;
+  holder.appendChild(titleEl);
+  const viewport = document.createElement('div');
+  viewport.className = 'bracket-fs-viewport';
+  viewport.innerHTML = '<div class="funnel-wrap">' + funnel.outerHTML + '</div>';
+  holder.appendChild(viewport);
+  document.body.appendChild(holder);
+
+  try {
+    const { toPng } = await getHtmlToImage();
+    const dataUrl = await toPng(holder, {
+      pixelRatio: 2,
+      backgroundColor: '#060d18',
+      cacheBust: true,
+    });
+    hideBracketToast();
+    if (navigator.vibrate) navigator.vibrate(12);
+    showBracketSaveOverlay(dataUrl, title);
+  } catch (e) {
+    hideBracketToast();
+    console.warn('captureBracketImage', e);
+    alert('生成图片失败，请检查网络后重试');
+  } finally {
+    document.body.removeChild(holder);
+    bracketCapturing = false;
+  }
+}
+
+function clearBracketLongPress() {
+  if (bracketLongPressTimer) {
+    clearTimeout(bracketLongPressTimer);
+    bracketLongPressTimer = null;
+  }
+}
+
+function onBracketLongPressStart(e) {
+  if (bracketCapturing) return;
+  if (e.target.closest('.bracket-fs-save, .bracket-fs-close')) return;
+  clearBracketLongPress();
+  bracketLongPressTimer = setTimeout(function() {
+    bracketLongPressTimer = null;
+    captureBracketImage();
+  }, BRACKET_LONG_PRESS_MS);
+}
+
+function setupBracketLongPress() {
+  const body = document.getElementById('bracketFsBody');
+  if (!body || body.dataset.lpBound) return;
+  body.dataset.lpBound = '1';
+  body.addEventListener('touchstart', onBracketLongPressStart, { passive: true });
+  body.addEventListener('touchend', clearBracketLongPress);
+  body.addEventListener('touchmove', clearBracketLongPress);
+  body.addEventListener('touchcancel', clearBracketLongPress);
+  body.addEventListener('contextmenu', function(e) {
+    if (document.getElementById('bracketFullscreen').classList.contains('open')) {
+      e.preventDefault();
+      captureBracketImage();
+    }
+  });
 }
 
 document.querySelectorAll('.bracket-preview').forEach(function(preview) {
@@ -925,6 +1175,13 @@ document.querySelectorAll('.bracket-preview').forEach(function(preview) {
   });
 });
 document.getElementById('bracketFsClose').addEventListener('click', closeBracketFullscreen);
+document.getElementById('bracketFsSave').addEventListener('click', captureBracketImage);
+document.getElementById('bracketSaveClose').addEventListener('click', closeBracketSaveOverlay);
+document.getElementById('bracketSaveOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeBracketSaveOverlay();
+});
+setupBracketLongPress();
+
 document.getElementById('bracketFullscreen').addEventListener('click', function(e) {
   if (e.target === this) closeBracketFullscreen();
 });
