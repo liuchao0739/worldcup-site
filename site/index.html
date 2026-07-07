@@ -346,19 +346,19 @@
   }
   .bracket-fs-body {
     flex: 1;
-    overflow: auto;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
-    -webkit-overflow-scrolling: touch;
+    padding: 4px;
+    min-height: 0;
   }
   .bracket-fs-viewport {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    min-height: min-content;
+    flex-shrink: 0;
+    overflow: hidden;
   }
   .bracket-fs-viewport .funnel-wrap {
     overflow: visible;
@@ -866,25 +866,29 @@ function layoutFullscreenBracket() {
   viewport.style.height = '';
   viewport.style.width = '';
 
-  const fw = funnel.offsetWidth || 1000;
-  const fh = funnel.offsetHeight || 480;
+  const fw = funnel.offsetWidth || funnel.scrollWidth || 1000;
+  const fh = funnel.offsetHeight || funnel.scrollHeight || 480;
   const mobile = window.innerWidth <= 900;
   const portrait = window.matchMedia('(orientation: portrait)').matches;
-  const headerH = 48;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight - headerH;
+  const header = fs.querySelector('.bracket-fs-header');
+  const headerH = header ? header.offsetHeight : 48;
+  const pad = 8;
+  const vw = window.innerWidth - pad * 2;
+  const vh = window.innerHeight - headerH - pad * 2;
 
   if (mobile && portrait) {
-    const scale = Math.min(vw / fh, vh / fw) * 1.05;
+    // 竖屏：旋转 90° 后视觉宽=fh·s，高=fw·s
+    const scale = Math.min(vw / fh, vh / fw) * 0.98;
+    viewport.style.width = Math.ceil(fh * scale) + 'px';
     viewport.style.height = Math.ceil(fw * scale) + 'px';
     wrap.style.transform = 'rotate(90deg) scale(' + scale + ')';
     wrap.style.transformOrigin = 'center center';
   } else {
-    const maxScale = mobile ? 1.12 : 1;
-    const scale = Math.min((vw - 24) / fw, (vh - 16) / fh, maxScale);
+    const scale = Math.min(vw / fw, vh / fh) * 0.98;
+    viewport.style.width = Math.ceil(fw * scale) + 'px';
     viewport.style.height = Math.ceil(fh * scale) + 'px';
     wrap.style.transform = 'scale(' + scale + ')';
-    wrap.style.transformOrigin = 'top center';
+    wrap.style.transformOrigin = 'center center';
   }
 }
 
@@ -898,6 +902,7 @@ function openBracketFullscreen(preview) {
   fs.classList.add('open');
   document.body.style.overflow = 'hidden';
   layoutFullscreenBracket();
+  requestAnimationFrame(function() { layoutFullscreenBracket(); });
   if (screen.orientation && screen.orientation.lock) {
     screen.orientation.lock('landscape').catch(function(){});
   }
