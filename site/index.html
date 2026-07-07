@@ -503,18 +503,18 @@
     .bracket-fs-viewport .funnel .champion { font-size: 21px; min-height: 66px; }
   }
 
-  /* 导出图片：须在视口内完成布局（z-index:-1 / 远偏移会导致空白图） */
+  /* 导出图片：全屏可见渲染，供 html2canvas 截图 */
   .bracket-capture-shell {
     position: fixed;
     left: 0;
     top: 0;
-    z-index: 2500;
+    z-index: 3500;
     background: #060d18;
     padding: 18px 14px 22px;
-    opacity: 0.01;
-    pointer-events: none;
     width: max-content;
     max-width: none;
+    opacity: 1;
+    pointer-events: none;
   }
   .bracket-capture-shell .bracket-capture-title {
     text-align: center;
@@ -752,6 +752,7 @@
 </div>
 <div class="bracket-save-toast" id="bracketSaveToast">正在生成图片…</div>
 
+<script src="vendor/html2canvas.min.js?v=2"></script>
 <script>
 // ===== 动态数据：data.json =====
 let wcData = null;
@@ -1054,45 +1055,10 @@ function closeBracketFullscreen() {
   }
 }
 
-let htmlToImageMod = null;
-let html2canvasLoading = null;
 let bracketLongPressTimer = null;
 let bracketCapturing = false;
+let bracketSaveBlobUrl = null;
 const BRACKET_LONG_PRESS_MS = 550;
-
-async function getHtmlToImage() {
-  if (!htmlToImageMod) {
-    const urls = [
-      'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/+esm',
-      'https://unpkg.com/html-to-image@1.11.11/+esm',
-    ];
-    let lastErr;
-    for (const url of urls) {
-      try {
-        htmlToImageMod = await import(url);
-        break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    if (!htmlToImageMod) throw lastErr || new Error('html-to-image load failed');
-  }
-  return htmlToImageMod;
-}
-
-async function getHtml2Canvas() {
-  if (window.html2canvas) return window.html2canvas;
-  if (!html2canvasLoading) {
-    html2canvasLoading = new Promise(function(resolve, reject) {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-      s.onload = function() { resolve(window.html2canvas); };
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-  return html2canvasLoading;
-}
 
 function waitFrames(n) {
   return new Promise(function(resolve) {
@@ -1101,44 +1067,83 @@ function waitFrames(n) {
   });
 }
 
-function buildCaptureShell(title, funnelHtml) {
+function getSourceFunnel() {
+  const title = document.getElementById('bracketFsTitle').textContent || '';
+  return title.indexOf('预测') >= 0
+    ? document.getElementById('predictFunnel')
+    : document.getElementById('funnel');
+}
+
+function buildCaptureShell(title, funnelEl) {
   const shell = document.createElement('div');
   shell.className = 'bracket-capture-shell';
-  shell.innerHTML =
-    '<div class="bracket-capture-title"></div>' +
-    '<div class="funnel-wrap">' + funnelHtml + '</div>';
-  shell.querySelector('.bracket-capture-title').textContent = title;
+  const titleEl = document.createElement('div');
+  titleEl.className = 'bracket-capture-title';
+  titleEl.textContent = title;
+  const wrap = document.createElement('div');
+  wrap.className = 'funnel-wrap';
+  wrap.appendChild(funnelEl.cloneNode(true));
+  shell.appendChild(titleEl);
+  shell.appendChild(wrap);
   return shell;
 }
 
-async function nodeToPng(node) {
-  const w = node.offsetWidth || node.scrollWidth;
-  const h = node.offsetHeight || node.scrollHeight;
-  if (w < 50 || h < 50) throw new Error('capture size too small: ' + w + 'x' + h);
-
-  try {
-    const { toPng } = await getHtmlToImage();
-    const url = await toPng(node, {
-      pixelRatio: 2,
-      backgroundColor: '#060d18',
-      cacheBust: true,
-      skipFonts: true,
-    });
-    if (url && url.length > 10000) return url;
-  } catch (e) {
-    console.warn('html-to-image', e);
+function canvasHasContent(canvas) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx || canvas.width < 50 || canvas.height < 50) return false;
+  const pts = [
+    [Math.floor(canvas.width * 0.5), Math.floor(canvas.height * 0.15)],
+    [Math.floor(canvas.width * 0.5), Math.floor(canvas.height * 0.5)],
+    [Math.floor(canvas.width * 0.3), Math.floor(canvas.height * 0.7)],
+  ];
+  for (const [x, y] of pts) {
+    const p = ctx.getImageData(Math.max(0, x - 2), Math.max(0, y - 2), 5, 5).data;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 10) continue;
+      if (p[i] > 40 || p[i + 1] > 50 || p[i + 2] > 60) return true;
+    }
   }
+  return false;
+}
 
-  const html2canvas = await getHtml2Canvas();
-  const canvas = await html2canvas(node, {
-    backgroundColor: '#060d18',
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    width: w,
-    height: h,
+function canvasToBlobUrl(canvas) {
+  return new Promise(function(resolve, reject) {
+    if (canvas.toBlob) {
+      canvas.toBlob(function(blob) {
+        if (blob) resolve(URL.createObjectURL(blob));
+        else reject(new Error('toBlob failed'));
+      }, 'image/png', 0.92);
+    } else {
+      resolve(canvas.toDataURL('image/png'));
+    }
   });
-  return canvas.toDataURL('image/png');
+}
+
+async function nodeToPng(node) {
+  if (!window.html2canvas) throw new Error('html2canvas 未加载');
+  const w = node.scrollWidth || node.offsetWidth;
+  const h = node.scrollHeight || node.offsetHeight;
+  if (w < 50 || h < 50) throw new Error('截图区域过小: ' + w + 'x' + h);
+
+  const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+  for (const foreign of [false, true]) {
+    const canvas = await window.html2canvas(node, {
+      backgroundColor: '#060d18',
+      scale: scale,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      foreignObjectRendering: foreign,
+      width: w,
+      height: h,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: w + 40,
+      windowHeight: h + 40,
+    });
+    if (canvasHasContent(canvas)) return canvasToBlobUrl(canvas);
+  }
+  throw new Error('生成了空白图片');
 }
 
 function showBracketToast(msg) {
@@ -1153,14 +1158,16 @@ function hideBracketToast() {
   if (el) el.classList.remove('show');
 }
 
-function showBracketSaveOverlay(dataUrl, title) {
+function showBracketSaveOverlay(imageUrl, title) {
   const overlay = document.getElementById('bracketSaveOverlay');
   const img = document.getElementById('bracketSaveImg');
   const link = document.getElementById('bracketSaveDownload');
   if (!overlay || !img || !link) return;
+  if (bracketSaveBlobUrl) URL.revokeObjectURL(bracketSaveBlobUrl);
+  bracketSaveBlobUrl = imageUrl.startsWith('blob:') ? imageUrl : null;
   const safe = (title || '对阵图').replace(/[\\/:*?"<>|]/g, '_');
-  img.src = dataUrl;
-  link.href = dataUrl;
+  img.src = imageUrl;
+  link.href = imageUrl;
   link.download = safe + '.png';
   overlay.classList.add('open');
 }
@@ -1170,31 +1177,35 @@ function closeBracketSaveOverlay() {
   const img = document.getElementById('bracketSaveImg');
   if (overlay) overlay.classList.remove('open');
   if (img) img.src = '';
+  if (bracketSaveBlobUrl) {
+    URL.revokeObjectURL(bracketSaveBlobUrl);
+    bracketSaveBlobUrl = null;
+  }
 }
 
 async function captureBracketImage() {
   if (bracketCapturing) return;
   const fs = document.getElementById('bracketFullscreen');
   if (!fs || !fs.classList.contains('open')) return;
-  const funnel = fs.querySelector('.bracket-fs-viewport .funnel');
-  if (!funnel) return;
+  const funnel = getSourceFunnel();
+  if (!funnel || !funnel.children.length) return;
 
   bracketCapturing = true;
   showBracketToast('正在生成图片…');
   const title = document.getElementById('bracketFsTitle').textContent || '对阵图';
-  const shell = buildCaptureShell(title, funnel.outerHTML);
+  const shell = buildCaptureShell(title, funnel);
   document.body.appendChild(shell);
 
   try {
-    await waitFrames(2);
-    const dataUrl = await nodeToPng(shell);
+    await waitFrames(3);
+    const imageUrl = await nodeToPng(shell);
     hideBracketToast();
     if (navigator.vibrate) navigator.vibrate(12);
-    showBracketSaveOverlay(dataUrl, title);
+    showBracketSaveOverlay(imageUrl, title);
   } catch (e) {
     hideBracketToast();
     console.warn('captureBracketImage', e);
-    alert('生成图片失败，请检查网络后重试');
+    alert('生成图片失败：' + (e.message || '请稍后重试'));
   } finally {
     if (shell.parentNode) shell.parentNode.removeChild(shell);
     bracketCapturing = false;
