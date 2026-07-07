@@ -1106,16 +1106,25 @@ function canvasHasContent(canvas) {
   return false;
 }
 
-function canvasToBlobUrl(canvas) {
+function canvasToImageUrl(canvas) {
   return new Promise(function(resolve, reject) {
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      if (dataUrl && dataUrl.length > 5000) {
+        resolve(dataUrl);
+        return;
+      }
+    } catch (e) {
+      console.warn('toDataURL', e);
+    }
     if (canvas.toBlob) {
       canvas.toBlob(function(blob) {
         if (blob) resolve(URL.createObjectURL(blob));
         else reject(new Error('toBlob failed'));
       }, 'image/png', 0.92);
-    } else {
-      resolve(canvas.toDataURL('image/png'));
+      return;
     }
+    reject(new Error('canvas export failed'));
   });
 }
 
@@ -1141,7 +1150,7 @@ async function nodeToPng(node) {
       windowWidth: w + 40,
       windowHeight: h + 40,
     });
-    if (canvasHasContent(canvas)) return canvasToBlobUrl(canvas);
+    if (canvasHasContent(canvas)) return canvasToImageUrl(canvas);
   }
   throw new Error('生成了空白图片');
 }
