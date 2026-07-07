@@ -6,6 +6,7 @@ REMOTE="seafile:/opt/worldcup-site"
 
 rsync -avz --delete "$LOCAL/site/" "$REMOTE/site/"
 rsync -avz "$LOCAL/scripts/" "$REMOTE/scripts/"
+rsync -avz "$LOCAL/nginx/" "$REMOTE/nginx/"
 rsync -avz "$LOCAL/docker-compose.yml" "$REMOTE/"
 ssh seafile "cd /opt/worldcup-site && docker compose up -d"
 

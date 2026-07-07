@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>2026 世界杯 · 冠军之路</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -568,6 +569,12 @@
     display: flex;
     gap: 10px;
   }
+  .bracket-save-actions button.bracket-save-primary,
+  .bracket-save-actions a.bracket-save-primary {
+    background: #2a6a3a;
+    border-color: #3a8a4a;
+    font-weight: 700;
+  }
   .bracket-save-actions button,
   .bracket-save-actions a {
     background: #1a3a28;
@@ -743,9 +750,10 @@
 <div class="bracket-save-overlay" id="bracketSaveOverlay">
   <div class="bracket-save-panel">
     <img id="bracketSaveImg" alt="对阵图" />
-    <p class="bracket-save-hint" id="bracketSaveHint">长按图片保存到相册</p>
+    <p class="bracket-save-hint" id="bracketSaveHint">正在准备保存…</p>
     <div class="bracket-save-actions">
-      <a id="bracketSaveDownload" href="#" download="worldcup-bracket.png">下载图片</a>
+      <button type="button" id="bracketSaveAlbum" class="bracket-save-primary">📷 保存到相册</button>
+      <a id="bracketSaveDownload" href="#" download="worldcup-bracket.png" style="display:none">下载</a>
       <button type="button" id="bracketSaveClose">关闭</button>
     </div>
   </div>
@@ -777,7 +785,7 @@ function updateMeta(data) {
   const lb = document.getElementById('liveBadge');
   if (lb && data.liveBadge) lb.textContent = data.liveBadge;
   const fm = document.getElementById('footerMeta');
-  if (fm) fm.textContent = '数据更新于 ' + formatUpdated(data.updatedAt) + ' · ' + (data.footerNote||'') + ' · 预测静态 · 每15分钟自动刷新 · 页面v3';
+  if (fm) fm.textContent = '数据更新于 ' + formatUpdated(data.updatedAt) + ' · ' + (data.footerNote||'') + ' · 预测静态 · 每15分钟自动刷新';
 }
 
 function renderStandings(groups) {
@@ -1058,6 +1066,8 @@ function closeBracketFullscreen() {
 let bracketLongPressTimer = null;
 let bracketCapturing = false;
 let bracketSaveBlobUrl = null;
+let bracketCurrentImageUrl = null;
+let bracketCurrentTitle = '';
 const BRACKET_LONG_PRESS_MS = 550;
 
 function waitFrames(n) {
@@ -1253,16 +1263,64 @@ function showBracketSaveOverlay(imageUrl, title, hint) {
   if (!overlay || !img || !link) return;
   if (bracketSaveBlobUrl) URL.revokeObjectURL(bracketSaveBlobUrl);
   bracketSaveBlobUrl = imageUrl.startsWith('blob:') ? imageUrl : null;
-  const safe = (title || '对阵图').replace(/[\\/:*?"<>|]/g, '_');
+  bracketCurrentImageUrl = imageUrl;
+  bracketCurrentTitle = title || '对阵图';
+  const safe = bracketCurrentTitle.replace(/[\\/:*?"<>|]/g, '_');
   img.src = imageUrl;
   link.href = imageUrl;
   link.download = safe + (imageUrl.indexOf('image/svg') >= 0 ? '.svg' : '.png');
-  if (hintEl) {
-    hintEl.textContent = hint || (imageUrl.indexOf('image/svg') >= 0
-      ? '长按图片保存到相册（华为请长按图片，勿点下载）'
-      : '长按图片保存到相册');
-  }
+  if (hintEl) hintEl.textContent = hint || '点击下方「保存到相册」，或长按图片保存';
   overlay.classList.add('open');
+  requestAnimationFrame(function() { promptSaveToAlbum(false); });
+}
+
+async function imageUrlToFile(imageUrl, filename, mime) {
+  const res = await fetch(imageUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: mime || blob.type || 'image/png' });
+}
+
+async function saveImageToAlbum(imageUrl, title) {
+  const safe = (title || '对阵图').replace(/[\\/:*?"<>|]/g, '_');
+  const isSvg = imageUrl.indexOf('image/svg') >= 0;
+  const ext = isSvg ? 'svg' : 'png';
+  const mime = isSvg ? 'image/svg+xml' : 'image/png';
+  const file = await imageUrlToFile(imageUrl, safe + '.' + ext, mime);
+  if (!navigator.share) return false;
+  const payload = { files: [file], title: safe };
+  if (navigator.canShare && !navigator.canShare(payload)) return false;
+  await navigator.share(payload);
+  return true;
+}
+
+async function promptSaveToAlbum(userInitiated) {
+  const url = bracketCurrentImageUrl;
+  const title = bracketCurrentTitle;
+  const hintEl = document.getElementById('bracketSaveHint');
+  if (!url) return;
+  try {
+    const shared = await saveImageToAlbum(url, title);
+    if (shared) {
+      if (hintEl) hintEl.textContent = '请在弹出菜单中选择「保存到相册」或「图库」';
+      showBracketToast('请选择「保存到相册」');
+      setTimeout(hideBracketToast, 3000);
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    console.warn('promptSaveToAlbum', e);
+  }
+  if (userInitiated) {
+    const link = document.getElementById('bracketSaveDownload');
+    if (link && link.href && link.href !== '#') {
+      link.click();
+      if (hintEl) hintEl.textContent = '若未保存到相册，请长按上方图片';
+      return;
+    }
+  }
+  if (hintEl && !userInitiated) {
+    hintEl.textContent = '点击下方「保存到相册」，或长按图片保存';
+  }
 }
 
 function closeBracketSaveOverlay() {
@@ -1270,6 +1328,8 @@ function closeBracketSaveOverlay() {
   const img = document.getElementById('bracketSaveImg');
   if (overlay) overlay.classList.remove('open');
   if (img) img.src = '';
+  bracketCurrentImageUrl = null;
+  bracketCurrentTitle = '';
   if (bracketSaveBlobUrl) {
     URL.revokeObjectURL(bracketSaveBlobUrl);
     bracketSaveBlobUrl = null;
@@ -1299,7 +1359,7 @@ async function captureBracketImage() {
       console.warn('html2canvas failed, SVG fallback', e1);
       const funnelForSvg = shell.querySelector('.funnel') || funnel;
       imageUrl = await funnelToPngImageUrl(funnelForSvg, title);
-      hint = '已用兼容模式生成 · 请长按图片保存（华为推荐长按，下载可能无效）';
+      hint = '已用兼容模式生成';
     }
     hideBracketToast();
     if (navigator.vibrate) navigator.vibrate(12);
@@ -1354,6 +1414,7 @@ document.querySelectorAll('.bracket-preview').forEach(function(preview) {
 });
 document.getElementById('bracketFsClose').addEventListener('click', closeBracketFullscreen);
 document.getElementById('bracketFsSave').addEventListener('click', captureBracketImage);
+document.getElementById('bracketSaveAlbum').addEventListener('click', function() { promptSaveToAlbum(true); });
 document.getElementById('bracketSaveClose').addEventListener('click', closeBracketSaveOverlay);
 document.getElementById('bracketSaveOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeBracketSaveOverlay();
