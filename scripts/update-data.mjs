@@ -209,25 +209,83 @@ function winnerLabel(a, b, score, prefer) {
   return e ? `${e} ${win} ${displayScore}` : `${win} ${displayScore}`;
 }
 
-function updateKnockoutFromMatches(ko, matches) {
-  const r16 = matches.filter(m => m.g === '16强' && m.s && !m.s.includes('vs'));
-  const find = (a, b) => r16.find(m => (m.a === a && m.b === b) || (m.a === b && m.b === a));
+/** 对阵图拓扑：每对相邻 R32 格子汇入一场 R16（与 index.html 连线一致） */
+const BRACKET = {
+  left: [
+    { r16: ['摩洛哥', '加拿大'], r32: [['摩洛哥', '荷兰'], ['加拿大', '南非']] },
+    { r16: ['法国', '巴拉圭'], r32: [['法国', '瑞典'], ['巴拉圭', '德国']] },
+    { r16: ['挪威', '巴西'], r32: [['挪威', '科特迪瓦'], ['巴西', '日本']] },
+    { r16: ['英格兰', '墨西哥'], r32: [['英格兰', '刚果(金)'], ['墨西哥', '厄瓜多尔']] },
+  ],
+  right: [
+    { r16: ['西班牙', '葡萄牙'], r32: [['西班牙', '奥地利'], ['葡萄牙', '克罗地亚']] },
+    { r16: ['美国', '比利时'], r32: [['美国', '波黑'], ['比利时', '塞内加尔']] },
+    { r16: ['阿根廷', '埃及'], r32: [['阿根廷', '佛得角'], ['埃及', '澳大利亚']] },
+    { r16: ['瑞士', '哥伦比亚'], r32: [['瑞士', '阿尔及利亚'], ['哥伦比亚', '加纳']] },
+  ],
+};
 
-  const leftPairs = [['摩洛哥', '加拿大'], ['法国', '巴拉圭'], ['挪威', '巴西'], ['英格兰', '墨西哥']];
-  const rightPairs = [['西班牙', '葡萄牙'], ['美国', '比利时'], ['阿根廷', '埃及'], ['瑞士', '哥伦比亚']];
+function findMatch(matches, stage, a, b) {
+  return matches.find(m => m.g === stage && ((m.a === a && m.b === b) || (m.a === b && m.b === a)));
+}
 
-  for (let i = 0; i < leftPairs.length; i++) {
-    const [a, b] = leftPairs[i];
-    const m = find(a, b);
-    if (m) ko.leftR16[i] = winnerLabel(m.a, m.b, m.s, m.a);
-    else if (!ko.leftR16[i]) ko.leftR16[i] = `${a} vs ${b}`;
+function r16WinnerTeam(matches, a, b) {
+  const m = findMatch(matches, '16强', a, b);
+  if (!m?.s || m.s.includes('vs')) return null;
+  const base = m.s.split('(')[0].replace(/[–—]/g, '-');
+  const [x, y] = base.split('-').map(Number);
+  if (isNaN(x) || isNaN(y)) return null;
+  if (x > y) return m.a;
+  if (y > x) return m.b;
+  return null;
+}
+
+function r32SlotLabel(matches, team, opp) {
+  const m = findMatch(matches, '32强', team, opp);
+  if (!m) return team;
+  return winnerLabel(m.a, m.b, m.s, team);
+}
+
+function r16SlotLabel(matches, a, b) {
+  const m = findMatch(matches, '16强', a, b);
+  if (!m?.s || m.s.includes('vs')) return `${a} vs ${b}`;
+  return winnerLabel(m.a, m.b, m.s, a);
+}
+
+function qfLabel(matches, pairA, pairB) {
+  const wA = r16WinnerTeam(matches, pairA[0], pairA[1]);
+  const wB = r16WinnerTeam(matches, pairB[0], pairB[1]);
+  if (wA && wB) return `${wA} vs ${wB}`;
+  return '待定';
+}
+
+function rebuildKnockout(ko, matches) {
+  const leftR32 = [];
+  const leftR16 = [];
+  for (const slot of BRACKET.left) {
+    for (const [team, opp] of slot.r32) leftR32.push(r32SlotLabel(matches, team, opp));
+    leftR16.push(r16SlotLabel(matches, slot.r16[0], slot.r16[1]));
   }
-  for (let i = 0; i < rightPairs.length; i++) {
-    const [a, b] = rightPairs[i];
-    const m = find(a, b);
-    if (m) ko.rightR16[i] = winnerLabel(m.a, m.b, m.s, m.a);
-    else if (!ko.rightR16[i]?.includes(' ')) ko.rightR16[i] = `${a} vs ${b}`;
+
+  const rightR32 = [];
+  const rightR16 = [];
+  for (const slot of BRACKET.right) {
+    for (const [team, opp] of slot.r32) rightR32.push(r32SlotLabel(matches, team, opp));
+    rightR16.push(r16SlotLabel(matches, slot.r16[0], slot.r16[1]));
   }
+
+  ko.leftR32 = leftR32;
+  ko.leftR16 = leftR16;
+  ko.rightR32 = rightR32;
+  ko.rightR16 = rightR16;
+  ko.leftQF = [
+    qfLabel(matches, BRACKET.left[0].r16, BRACKET.left[1].r16),
+    qfLabel(matches, BRACKET.left[2].r16, BRACKET.left[3].r16),
+  ];
+  ko.rightQF = [
+    qfLabel(matches, BRACKET.right[0].r16, BRACKET.right[1].r16),
+    qfLabel(matches, BRACKET.right[2].r16, BRACKET.right[3].r16),
+  ];
   return ko;
 }
 
@@ -269,7 +327,7 @@ async function main() {
   }
 
   const koBefore = JSON.stringify(data.knockout);
-  data.knockout = updateKnockoutFromMatches(data.knockout, data.matches);
+  data.knockout = rebuildKnockout(data.knockout, data.matches);
   if (JSON.stringify(data.knockout) !== koBefore) {
     changed = true;
     log.push('knockout updated');
