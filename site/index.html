@@ -503,16 +503,20 @@
     .bracket-fs-viewport .funnel .champion { font-size: 21px; min-height: 66px; }
   }
 
-  /* 导出图片：离屏渲染，字号适中 */
-  .bracket-capture {
+  /* 导出图片：须在视口内完成布局（z-index:-1 / 远偏移会导致空白图） */
+  .bracket-capture-shell {
     position: fixed;
-    left: -12000px;
+    left: 0;
     top: 0;
+    z-index: 2500;
     background: #060d18;
     padding: 18px 14px 22px;
-    z-index: -1;
+    opacity: 0.01;
+    pointer-events: none;
+    width: max-content;
+    max-width: none;
   }
-  .bracket-capture-title {
+  .bracket-capture-shell .bracket-capture-title {
     text-align: center;
     font-size: 18px;
     font-weight: 800;
@@ -520,14 +524,14 @@
     margin-bottom: 14px;
     letter-spacing: 1px;
   }
-  .bracket-capture .funnel {
+  .bracket-capture-shell .funnel {
     min-width: 1000px;
     gap: 5px 6px;
   }
-  .bracket-capture .funnel .round-label { font-size: 13px; }
-  .bracket-capture .funnel .center-label { font-size: 14px; }
-  .bracket-capture .funnel .slot { font-size: 13px; min-height: 32px; padding: 4px 6px; }
-  .bracket-capture .funnel .champion { font-size: 18px; min-height: 58px; }
+  .bracket-capture-shell .funnel .round-label { font-size: 13px; }
+  .bracket-capture-shell .funnel .center-label { font-size: 14px; }
+  .bracket-capture-shell .funnel .slot { font-size: 13px; min-height: 32px; padding: 4px 6px; }
+  .bracket-capture-shell .funnel .champion { font-size: 18px; min-height: 58px; }
 
   .bracket-save-overlay {
     display: none;
@@ -1051,15 +1055,90 @@ function closeBracketFullscreen() {
 }
 
 let htmlToImageMod = null;
+let html2canvasLoading = null;
 let bracketLongPressTimer = null;
 let bracketCapturing = false;
 const BRACKET_LONG_PRESS_MS = 550;
 
 async function getHtmlToImage() {
   if (!htmlToImageMod) {
-    htmlToImageMod = await import('https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/+esm');
+    const urls = [
+      'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/+esm',
+      'https://unpkg.com/html-to-image@1.11.11/+esm',
+    ];
+    let lastErr;
+    for (const url of urls) {
+      try {
+        htmlToImageMod = await import(url);
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (!htmlToImageMod) throw lastErr || new Error('html-to-image load failed');
   }
   return htmlToImageMod;
+}
+
+async function getHtml2Canvas() {
+  if (window.html2canvas) return window.html2canvas;
+  if (!html2canvasLoading) {
+    html2canvasLoading = new Promise(function(resolve, reject) {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload = function() { resolve(window.html2canvas); };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return html2canvasLoading;
+}
+
+function waitFrames(n) {
+  return new Promise(function(resolve) {
+    function step() { if (--n <= 0) resolve(); else requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  });
+}
+
+function buildCaptureShell(title, funnelHtml) {
+  const shell = document.createElement('div');
+  shell.className = 'bracket-capture-shell';
+  shell.innerHTML =
+    '<div class="bracket-capture-title"></div>' +
+    '<div class="funnel-wrap">' + funnelHtml + '</div>';
+  shell.querySelector('.bracket-capture-title').textContent = title;
+  return shell;
+}
+
+async function nodeToPng(node) {
+  const w = node.offsetWidth || node.scrollWidth;
+  const h = node.offsetHeight || node.scrollHeight;
+  if (w < 50 || h < 50) throw new Error('capture size too small: ' + w + 'x' + h);
+
+  try {
+    const { toPng } = await getHtmlToImage();
+    const url = await toPng(node, {
+      pixelRatio: 2,
+      backgroundColor: '#060d18',
+      cacheBust: true,
+      skipFonts: true,
+    });
+    if (url && url.length > 10000) return url;
+  } catch (e) {
+    console.warn('html-to-image', e);
+  }
+
+  const html2canvas = await getHtml2Canvas();
+  const canvas = await html2canvas(node, {
+    backgroundColor: '#060d18',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+    width: w,
+    height: h,
+  });
+  return canvas.toDataURL('image/png');
 }
 
 function showBracketToast(msg) {
@@ -1103,26 +1182,12 @@ async function captureBracketImage() {
   bracketCapturing = true;
   showBracketToast('正在生成图片…');
   const title = document.getElementById('bracketFsTitle').textContent || '对阵图';
-
-  const holder = document.createElement('div');
-  holder.className = 'bracket-capture';
-  const titleEl = document.createElement('div');
-  titleEl.className = 'bracket-capture-title';
-  titleEl.textContent = title;
-  holder.appendChild(titleEl);
-  const viewport = document.createElement('div');
-  viewport.className = 'bracket-fs-viewport';
-  viewport.innerHTML = '<div class="funnel-wrap">' + funnel.outerHTML + '</div>';
-  holder.appendChild(viewport);
-  document.body.appendChild(holder);
+  const shell = buildCaptureShell(title, funnel.outerHTML);
+  document.body.appendChild(shell);
 
   try {
-    const { toPng } = await getHtmlToImage();
-    const dataUrl = await toPng(holder, {
-      pixelRatio: 2,
-      backgroundColor: '#060d18',
-      cacheBust: true,
-    });
+    await waitFrames(2);
+    const dataUrl = await nodeToPng(shell);
     hideBracketToast();
     if (navigator.vibrate) navigator.vibrate(12);
     showBracketSaveOverlay(dataUrl, title);
@@ -1131,7 +1196,7 @@ async function captureBracketImage() {
     console.warn('captureBracketImage', e);
     alert('生成图片失败，请检查网络后重试');
   } finally {
-    document.body.removeChild(holder);
+    if (shell.parentNode) shell.parentNode.removeChild(shell);
     bracketCapturing = false;
   }
 }
