@@ -36,9 +36,27 @@ const EMOJI = {
   巴拉圭: '🇵🇾', 墨西哥: '🇲🇽',
 };
 
+const VALID_TEAMS = new Set(Object.values(TEAM_CN));
+
 function cn(name) {
-  const n = name.replace(/<[^>]+>/g, '').replace(/\[[^\]]*\]/g, '').trim();
+  const n = decodeHtml(name);
   return TEAM_CN[n] || n;
+}
+
+function decodeHtml(text) {
+  return text
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isKnownTeam(name) {
+  return VALID_TEAMS.has(name);
 }
 
 function emoji(t) {
@@ -53,49 +71,90 @@ function matchKey(m) {
   return `${m.a}|${m.b}|${m.g}`;
 }
 
+const WIKI_UA = 'worldcup.xiandan.me/1.0 (data sync; +https://worldcup.xiandan.me)';
+
 async function fetchWikiHtml() {
-  const url = 'https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup&prop=text&formatversion=2&format=json';
+  const url = 'https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup_knockout_stage&prop=text&formatversion=2&format=json';
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'worldcup.xiandan.me/1.0 (data sync; +https://worldcup.xiandan.me)' },
+    headers: { 'User-Agent': WIKI_UA },
+    signal: AbortSignal.timeout(45000),
   });
   if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
   const json = await res.json();
   return json.parse?.text || '';
 }
 
-/** 从淘汰赛表格行解析比分 */
+function stripHtml(text) {
+  return decodeHtml(text);
+}
+
+function parseScoreCell(text) {
+  const plain = decodeHtml(text);
+  const m = plain.match(/^(\d+)\s*[–—-]\s*(\d+)$/);
+  if (!m) return null;
+  return `${m[1]}-${m[2]}`;
+}
+
+/** 从各场比赛的 h3 小节里解析比分，跳过对阵图里的脏数据 */
 function parseKnockoutFromHtml(html, stage) {
   const found = [];
-  const marker = stage === 'r16' ? /Round of 16/i : stage === 'r32' ? /Round of 32/i : null;
-  if (!marker) return found;
+  const startRe = stage === 'r16'
+    ? /id="Round_of_16"/i
+    : /id="Round_of_32"/i;
+  const endRe = stage === 'r16'
+    ? /id="Quarterfinals"/i
+    : /id="Round_of_16"/i;
+  const g = stage === 'r16' ? '16强' : '32强';
 
-  const idx = html.search(marker);
-  if (idx < 0) return found;
-  const slice = html.slice(idx, idx + 120000);
+  const start = html.search(startRe);
+  if (start < 0) return found;
+  const end = html.search(endRe, start + 1);
+  const slice = html.slice(start, end > start ? end : start + 300000);
 
-  // 典型 wikitext 行：| Team A | score | Team B |
-  const rowRe = /\|\s*([A-Za-z][^|\n]{1,35})\s*\|\s*(\d+)\s*[–—-]\s*(\d+)(?:\s*\([^)]*\))?\s*\|\s*([A-Za-z][^|\n]{1,35})\s*\|/g;
-  let m;
-  while ((m = rowRe.exec(slice)) !== null) {
-    const a = cn(m[1]);
-    const b = cn(m[4]);
-    const score = `${m[2]}-${m[3]}`;
-    if (!a || !b || a === b) continue;
-    found.push({ a, b, s: score, g: stage === 'r16' ? '16强' : '32强', d: '', t: '' });
+  const sectionRe = /<h3[^>]*>([\s\S]*?)<\/h3>([\s\S]*?)(?=<h3|<h2[^>]*>|$)/gi;
+  let section;
+  while ((section = sectionRe.exec(slice)) !== null) {
+    const title = decodeHtml(section[1]);
+    if (!/\bvs\.?\b/i.test(title)) continue;
+
+    const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let row;
+    while ((row = rowRe.exec(section[2])) !== null) {
+      const cells = [...row[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m => m[1]);
+      if (cells.length !== 3) continue;
+
+      const score = parseScoreCell(cells[1]);
+      if (!score) continue;
+
+      const a = cn(cells[0]);
+      const b = cn(cells[2]);
+      if (!isKnownTeam(a) || !isKnownTeam(b) || a === b) continue;
+
+      found.push({ a, b, s: score, g, d: '', t: '' });
+      break;
+    }
   }
   return found;
+}
+
+function flipScore(score) {
+  const parts = score.split('-');
+  return parts.length === 2 ? `${parts[1]}-${parts[0]}` : score;
 }
 
 function mergeMatches(existing, incoming) {
   const map = new Map(existing.map(m => [matchKey(m), { ...m }]));
   let added = 0;
   for (const m of incoming) {
+    if (!isKnownTeam(m.a) || !isKnownTeam(m.b)) continue;
     const k1 = matchKey(m);
     const k2 = `${m.b}|${m.a}|${m.g}`;
     const hit = map.get(k1) || map.get(k2);
+    const reversed = hit && hit.a === m.b && hit.b === m.a;
+    const newScore = reversed ? flipScore(m.s) : m.s;
     if (hit) {
-      if (hit.s !== m.s) {
-        hit.s = m.s;
+      if (hit.s !== newScore) {
+        hit.s = newScore;
         added++;
       }
     } else {
@@ -104,6 +163,10 @@ function mergeMatches(existing, incoming) {
     }
   }
   return { matches: [...map.values()], added };
+}
+
+function sanitizeMatches(matches) {
+  return matches.filter(m => isKnownTeam(m.a) && isKnownTeam(m.b));
 }
 
 function stripFlags(s) {
@@ -151,20 +214,20 @@ function updateKnockoutFromMatches(ko, matches) {
   for (let i = 0; i < leftPairs.length; i++) {
     const [a, b] = leftPairs[i];
     const m = find(a, b);
-    if (m) ko.leftR16[i] = winnerLabel(a, b, m.s, a);
+    if (m) ko.leftR16[i] = winnerLabel(m.a, m.b, m.s, m.a);
     else if (!ko.leftR16[i]) ko.leftR16[i] = `${a} vs ${b}`;
   }
   for (let i = 0; i < rightPairs.length; i++) {
     const [a, b] = rightPairs[i];
     const m = find(a, b);
-    if (m) ko.rightR16[i] = winnerLabel(a, b, m.s, a);
+    if (m) ko.rightR16[i] = winnerLabel(m.a, m.b, m.s, m.a);
     else if (!ko.rightR16[i]?.includes(' ')) ko.rightR16[i] = `${a} vs ${b}`;
   }
   return ko;
 }
 
 function inferLiveBadge(matches, upcoming) {
-  const r16Done = matches.filter(m => m.g === '16强').length;
+  const r16Done = matches.filter(m => m.g === '16强' && m.s && !m.s.includes('vs')).length;
   const r16Total = 8;
   if (r16Done < r16Total) return '16强进行中';
   const qfUp = upcoming.some(u => u.g === '8强');
@@ -177,6 +240,13 @@ async function main() {
   const data = JSON.parse(raw);
   let changed = false;
   let log = [];
+
+  const cleaned = sanitizeMatches(data.matches);
+  if (cleaned.length !== data.matches.length) {
+    log.push(`matches cleaned -${data.matches.length - cleaned.length}`);
+    data.matches = cleaned;
+    changed = true;
+  }
 
   try {
     const html = await fetchWikiHtml();
@@ -213,10 +283,13 @@ async function main() {
     changed = true;
   }
 
-  const prev = data.updatedAt;
-  data.updatedAt = new Date().toISOString();
-  writeFileSync(DATA_PATH, JSON.stringify(data, null, 2) + '\n');
-  console.log('[ok]', data.updatedAt, changed ? log.join(', ') || 'content changed' : 'timestamp refresh');
+  if (changed) {
+    data.updatedAt = new Date().toISOString();
+    writeFileSync(DATA_PATH, JSON.stringify(data, null, 2) + '\n');
+    console.log('[ok]', data.updatedAt, log.join(', ') || 'content changed');
+  } else {
+    console.log('[skip] no content change (updatedAt stays', data.updatedAt + ')');
+  }
 }
 
 main().catch(e => {
