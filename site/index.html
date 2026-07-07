@@ -743,7 +743,7 @@
 <div class="bracket-save-overlay" id="bracketSaveOverlay">
   <div class="bracket-save-panel">
     <img id="bracketSaveImg" alt="对阵图" />
-    <p class="bracket-save-hint">长按图片保存到相册</p>
+    <p class="bracket-save-hint" id="bracketSaveHint">长按图片保存到相册</p>
     <div class="bracket-save-actions">
       <a id="bracketSaveDownload" href="#" download="worldcup-bracket.png">下载图片</a>
       <button type="button" id="bracketSaveClose">关闭</button>
@@ -752,7 +752,7 @@
 </div>
 <div class="bracket-save-toast" id="bracketSaveToast">正在生成图片…</div>
 
-<script src="vendor/html2canvas.min.js?v=2"></script>
+<script src="vendor/html2canvas.min.js?v=3"></script>
 <script>
 // ===== 动态数据：data.json =====
 let wcData = null;
@@ -777,7 +777,7 @@ function updateMeta(data) {
   const lb = document.getElementById('liveBadge');
   if (lb && data.liveBadge) lb.textContent = data.liveBadge;
   const fm = document.getElementById('footerMeta');
-  if (fm) fm.textContent = '数据更新于 ' + formatUpdated(data.updatedAt) + ' · ' + (data.footerNote||'') + ' · 预测静态 · 每15分钟自动刷新';
+  if (fm) fm.textContent = '数据更新于 ' + formatUpdated(data.updatedAt) + ' · ' + (data.footerNote||'') + ' · 预测静态 · 每15分钟自动刷新 · 页面v3';
 }
 
 function renderStandings(groups) {
@@ -1106,6 +1106,84 @@ function canvasHasContent(canvas) {
   return false;
 }
 
+function escapeXml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function funnelToSvgDataUrl(funnelEl, title) {
+  const W = 1080;
+  const H = 620;
+  const cellW = 88;
+  const cellH = 34;
+  const ox = 18;
+  const oy = 48;
+  let body = '<rect width="100%" height="100%" fill="#060d18"/>';
+  body += '<text x="' + (W / 2) + '" y="30" text-anchor="middle" fill="#e8e8e8" font-size="18" font-weight="700" font-family="system-ui,sans-serif">' + escapeXml(title) + '</text>';
+
+  funnelEl.querySelectorAll('[style*="grid-column"]').forEach(function(el) {
+    const style = el.getAttribute('style') || '';
+    const colM = style.match(/grid-column:\s*(\d+)/);
+    const rowM = style.match(/grid-row:\s*(\d+)/);
+    if (!colM || !rowM) return;
+    const col = parseInt(colM[1], 10);
+    const row = parseInt(rowM[1], 10);
+    const text = (el.textContent || '').trim();
+    if (!text) return;
+    const x = ox + (col - 1) * cellW;
+    const y = oy + (row - 1) * cellH;
+    const isLabel = el.classList.contains('round-label') || el.classList.contains('center-label');
+    const isChamp = el.classList.contains('champion');
+    if (isLabel) {
+      body += '<text x="' + (x + cellW / 2) + '" y="' + (y + 20) + '" text-anchor="middle" fill="#6a9a7a" font-size="12" font-family="system-ui,sans-serif">' + escapeXml(text) + '</text>';
+      return;
+    }
+    const w = cellW - 6;
+    const h = isChamp ? 48 : 30;
+    const fill = isChamp ? '#1a3a28' : '#0f1f2e';
+    body += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="4" fill="' + fill + '" stroke="#2a5a3a" stroke-width="1"/>';
+    body += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" fill="#d8ead8" font-size="' + (isChamp ? 14 : 11) + '" font-family="system-ui,sans-serif">' + escapeXml(text) + '</text>';
+  });
+
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + body + '</svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function svgDataUrlToPng(svgUrl) {
+  return new Promise(function(resolve, reject) {
+    const img = new Image();
+    img.onload = function() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth || 1080;
+        c.height = img.naturalHeight || 620;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#060d18';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0);
+        if (canvasHasContent(c)) {
+          resolve(c.toDataURL('image/png'));
+          return;
+        }
+        reject(new Error('SVG转PNG为空'));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = function() { reject(new Error('SVG加载失败')); };
+    img.src = svgUrl;
+  });
+}
+
+async function funnelToPngImageUrl(funnelEl, title) {
+  const svgUrl = funnelToSvgDataUrl(funnelEl, title);
+  try {
+    return await svgDataUrlToPng(svgUrl);
+  } catch (e) {
+    console.warn('svgToPng', e);
+    return svgUrl;
+  }
+}
+
 function canvasToImageUrl(canvas) {
   return new Promise(function(resolve, reject) {
     try {
@@ -1167,17 +1245,23 @@ function hideBracketToast() {
   if (el) el.classList.remove('show');
 }
 
-function showBracketSaveOverlay(imageUrl, title) {
+function showBracketSaveOverlay(imageUrl, title, hint) {
   const overlay = document.getElementById('bracketSaveOverlay');
   const img = document.getElementById('bracketSaveImg');
   const link = document.getElementById('bracketSaveDownload');
+  const hintEl = document.getElementById('bracketSaveHint');
   if (!overlay || !img || !link) return;
   if (bracketSaveBlobUrl) URL.revokeObjectURL(bracketSaveBlobUrl);
   bracketSaveBlobUrl = imageUrl.startsWith('blob:') ? imageUrl : null;
   const safe = (title || '对阵图').replace(/[\\/:*?"<>|]/g, '_');
   img.src = imageUrl;
   link.href = imageUrl;
-  link.download = safe + '.png';
+  link.download = safe + (imageUrl.indexOf('image/svg') >= 0 ? '.svg' : '.png');
+  if (hintEl) {
+    hintEl.textContent = hint || (imageUrl.indexOf('image/svg') >= 0
+      ? '长按图片保存到相册（华为请长按图片，勿点下载）'
+      : '长按图片保存到相册');
+  }
   overlay.classList.add('open');
 }
 
@@ -1207,10 +1291,19 @@ async function captureBracketImage() {
 
   try {
     await waitFrames(3);
-    const imageUrl = await nodeToPng(shell);
+    let imageUrl;
+    let hint;
+    try {
+      imageUrl = await nodeToPng(shell);
+    } catch (e1) {
+      console.warn('html2canvas failed, SVG fallback', e1);
+      const funnelForSvg = shell.querySelector('.funnel') || funnel;
+      imageUrl = await funnelToPngImageUrl(funnelForSvg, title);
+      hint = '已用兼容模式生成 · 请长按图片保存（华为推荐长按，下载可能无效）';
+    }
     hideBracketToast();
     if (navigator.vibrate) navigator.vibrate(12);
-    showBracketSaveOverlay(imageUrl, title);
+    showBracketSaveOverlay(imageUrl, title, hint);
   } catch (e) {
     hideBracketToast();
     console.warn('captureBracketImage', e);
