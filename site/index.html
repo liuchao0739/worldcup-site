@@ -365,9 +365,6 @@
     padding: 0;
     transform-origin: center center;
   }
-  .bracket-fs-viewport .funnel {
-    min-width: 1000px;
-  }
   .funnel {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 0.6fr 1fr 1fr 1fr 1fr 1fr;
@@ -450,6 +447,38 @@
     .funnel { min-width: 800px; }
     .funnel .slot { font-size: 8px; min-height: 22px; padding: 2px 3px; }
     .funnel .champion { font-size: 11px; min-height: 40px; }
+  }
+
+  /* 全屏模式：字号加大，覆盖手机缩略图的小字 */
+  .bracket-fs-viewport .funnel {
+    min-width: 860px;
+    gap: 5px 6px;
+  }
+  .bracket-fs-viewport .funnel .round-label {
+    font-size: 13px;
+    padding: 5px 0;
+  }
+  .bracket-fs-viewport .funnel .center-label {
+    font-size: 14px;
+  }
+  .bracket-fs-viewport .funnel .slot {
+    font-size: 14px;
+    min-height: 34px;
+    padding: 4px 6px;
+  }
+  .bracket-fs-viewport .funnel .slot.final {
+    font-size: 16px;
+    min-height: 46px;
+  }
+  .bracket-fs-viewport .funnel .champion {
+    font-size: 19px;
+    min-height: 62px;
+  }
+  @media (max-width: 900px) {
+    .bracket-fs-viewport .funnel .round-label { font-size: 15px; }
+    .bracket-fs-viewport .funnel .center-label { font-size: 16px; }
+    .bracket-fs-viewport .funnel .slot { font-size: 15px; min-height: 36px; }
+    .bracket-fs-viewport .funnel .champion { font-size: 21px; min-height: 66px; }
   }
   .footer {
     text-align: center; padding: 20px;
@@ -846,12 +875,13 @@ function layoutFullscreenBracket() {
   const vh = window.innerHeight - headerH;
 
   if (mobile && portrait) {
-    const scale = Math.min(vw / fh, vh / fw) * 0.94;
+    const scale = Math.min(vw / fh, vh / fw) * 1.05;
     viewport.style.height = Math.ceil(fw * scale) + 'px';
     wrap.style.transform = 'rotate(90deg) scale(' + scale + ')';
     wrap.style.transformOrigin = 'center center';
   } else {
-    const scale = Math.min((vw - 24) / fw, (vh - 16) / fh, 1);
+    const maxScale = mobile ? 1.12 : 1;
+    const scale = Math.min((vw - 24) / fw, (vh - 16) / fh, maxScale);
     viewport.style.height = Math.ceil(fh * scale) + 'px';
     wrap.style.transform = 'scale(' + scale + ')';
     wrap.style.transformOrigin = 'top center';
