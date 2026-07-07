@@ -559,6 +559,15 @@
     border-radius: 8px;
     border: 1px solid #2a5a3a;
     -webkit-touch-callout: default;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .bracket-save-panel img.pulse-save {
+    animation: save-pulse 1.1s ease-in-out 3;
+  }
+  @keyframes save-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(90, 200, 120, 0.55); }
+    50% { box-shadow: 0 0 0 10px rgba(90, 200, 120, 0.15); }
   }
   .bracket-save-hint {
     font-size: 14px;
@@ -752,7 +761,7 @@
     <img id="bracketSaveImg" alt="对阵图" />
     <p class="bracket-save-hint" id="bracketSaveHint">正在准备保存…</p>
     <div class="bracket-save-actions">
-      <button type="button" id="bracketSaveAlbum" class="bracket-save-primary">📷 保存到相册</button>
+      <button type="button" id="bracketSaveAlbum" class="bracket-save-primary">👆 长按图片保存</button>
       <a id="bracketSaveDownload" href="#" download="worldcup-bracket.png" style="display:none">下载</a>
       <button type="button" id="bracketSaveClose">关闭</button>
     </div>
@@ -1255,6 +1264,48 @@ function hideBracketToast() {
   if (el) el.classList.remove('show');
 }
 
+function isTouchMobile() {
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+  return /Android|iPhone|iPad|iPod|Mobile|HarmonyOS|HUAWEI|HONOR/i.test(navigator.userAgent);
+}
+
+async function canShareImageFiles(imageUrl, title) {
+  if (!navigator.share || !navigator.canShare || !imageUrl) return false;
+  try {
+    const safe = (title || '对阵图').replace(/[\\/:*?"<>|]/g, '_');
+    const isSvg = imageUrl.indexOf('image/svg') >= 0;
+    const ext = isSvg ? 'svg' : 'png';
+    const mime = isSvg ? 'image/svg+xml' : 'image/png';
+    const file = await imageUrlToFile(imageUrl, safe + '.' + ext, mime);
+    return navigator.canShare({ files: [file] });
+  } catch (e) {
+    return false;
+  }
+}
+
+function updateAlbumButton(imageUrl, title) {
+  const btn = document.getElementById('bracketSaveAlbum');
+  if (!btn) return;
+  canShareImageFiles(imageUrl, title).then(function(ok) {
+    btn.textContent = ok ? '📷 保存到相册' : '👆 长按图片保存';
+  });
+}
+
+function guideLongPressSave() {
+  const img = document.getElementById('bracketSaveImg');
+  const hintEl = document.getElementById('bracketSaveHint');
+  if (hintEl) hintEl.textContent = '请用手指长按上方图片，选择「保存图片」到相册';
+  if (img) {
+    img.classList.remove('pulse-save');
+    void img.offsetWidth;
+    img.classList.add('pulse-save');
+    setTimeout(function() { img.classList.remove('pulse-save'); }, 3600);
+  }
+  showBracketToast('请长按图片 → 保存图片');
+  setTimeout(hideBracketToast, 4000);
+  if (navigator.vibrate) navigator.vibrate([18, 36, 18]);
+}
+
 function showBracketSaveOverlay(imageUrl, title, hint) {
   const overlay = document.getElementById('bracketSaveOverlay');
   const img = document.getElementById('bracketSaveImg');
@@ -1269,9 +1320,13 @@ function showBracketSaveOverlay(imageUrl, title, hint) {
   img.src = imageUrl;
   link.href = imageUrl;
   link.download = safe + (imageUrl.indexOf('image/svg') >= 0 ? '.svg' : '.png');
-  if (hintEl) hintEl.textContent = hint || '点击下方「保存到相册」，或长按图片保存';
+  if (hintEl) {
+    hintEl.textContent = hint || (isTouchMobile()
+      ? '长按上方图片，选择「保存图片」到相册'
+      : '可点击下方按钮分享，或右键图片另存为');
+  }
+  updateAlbumButton(imageUrl, bracketCurrentTitle);
   overlay.classList.add('open');
-  requestAnimationFrame(function() { promptSaveToAlbum(false); });
 }
 
 async function imageUrlToFile(imageUrl, filename, mime) {
@@ -1293,33 +1348,34 @@ async function saveImageToAlbum(imageUrl, title) {
   return true;
 }
 
-async function promptSaveToAlbum(userInitiated) {
+async function promptSaveToAlbum() {
   const url = bracketCurrentImageUrl;
   const title = bracketCurrentTitle;
   const hintEl = document.getElementById('bracketSaveHint');
   if (!url) return;
-  try {
-    const shared = await saveImageToAlbum(url, title);
-    if (shared) {
-      if (hintEl) hintEl.textContent = '请在弹出菜单中选择「保存到相册」或「图库」';
+
+  if (await canShareImageFiles(url, title)) {
+    try {
+      await saveImageToAlbum(url, title);
+      if (hintEl) hintEl.textContent = '请在弹出菜单中选择「存储到相册」或「图库」';
       showBracketToast('请选择「保存到相册」');
       setTimeout(hideBracketToast, 3000);
       return;
-    }
-  } catch (e) {
-    if (e && e.name === 'AbortError') return;
-    console.warn('promptSaveToAlbum', e);
-  }
-  if (userInitiated) {
-    const link = document.getElementById('bracketSaveDownload');
-    if (link && link.href && link.href !== '#') {
-      link.click();
-      if (hintEl) hintEl.textContent = '若未保存到相册，请长按上方图片';
-      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      console.warn('promptSaveToAlbum share', e);
     }
   }
-  if (hintEl && !userInitiated) {
-    hintEl.textContent = '点击下方「保存到相册」，或长按图片保存';
+
+  if (isTouchMobile()) {
+    guideLongPressSave();
+    return;
+  }
+
+  const link = document.getElementById('bracketSaveDownload');
+  if (link && link.href && link.href !== '#') {
+    link.click();
+    if (hintEl) hintEl.textContent = '图片已下载到电脑';
   }
 }
 
@@ -1414,7 +1470,10 @@ document.querySelectorAll('.bracket-preview').forEach(function(preview) {
 });
 document.getElementById('bracketFsClose').addEventListener('click', closeBracketFullscreen);
 document.getElementById('bracketFsSave').addEventListener('click', captureBracketImage);
-document.getElementById('bracketSaveAlbum').addEventListener('click', function() { promptSaveToAlbum(true); });
+document.getElementById('bracketSaveAlbum').addEventListener('click', promptSaveToAlbum);
+document.getElementById('bracketSaveImg').addEventListener('click', function() {
+  if (isTouchMobile()) guideLongPressSave();
+});
 document.getElementById('bracketSaveClose').addEventListener('click', closeBracketSaveOverlay);
 document.getElementById('bracketSaveOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeBracketSaveOverlay();
