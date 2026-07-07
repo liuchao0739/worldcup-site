@@ -633,9 +633,9 @@ stEl.innerHTML = groups.map(g => {
 
 // ===== 共享对阵图渲染 =====
 const ROUND_LABELS = [
-  {col:1,text:'32强',cls:'left-label'},{col:2,text:'16强',cls:'left-label'},{col:3,text:'1/4决赛',cls:'left-label'},
-  {col:4,text:'半决赛',cls:'left-label'},{col:5,text:'',cls:'left-label'},{col:6,text:'🏆 冠军',cls:'center-label'},
-  {col:7,text:'',cls:'right-label'},{col:8,text:'半决赛',cls:'right-label'},{col:9,text:'1/4决赛',cls:'right-label'},
+  {col:1,text:'32强',cls:'left-label'},{col:2,text:'16强',cls:'left-label'},{col:3,text:'8强',cls:'left-label'},
+  {col:4,text:'4强',cls:'left-label'},{col:5,text:'',cls:'left-label'},{col:6,text:'🏆 冠军',cls:'center-label'},
+  {col:7,text:'',cls:'right-label'},{col:8,text:'4强',cls:'right-label'},{col:9,text:'8强',cls:'right-label'},
   {col:10,text:'16强',cls:'right-label'},{col:11,text:'32强',cls:'right-label'},
 ];
 
@@ -647,7 +647,7 @@ function bracketLabels(isPredict) {
 }
 
 function bracketConnectors() {
-  // 只在空白汇合行画线；半决赛列(4/8)第9行有球队格子，不画
+  // 只在空白汇合行画线；4强列(4/8)第9行有球队格子，不画
   let h = '';
   for(let i=0;i<4;i++) h += `<div class="bracket-conn conn-r" style="grid-column:1;grid-row:${3+i*4}"></div>`;
   for(let i=0;i<2;i++) h += `<div class="bracket-conn conn-r" style="grid-column:2;grid-row:${5+i*8}"></div>`;
