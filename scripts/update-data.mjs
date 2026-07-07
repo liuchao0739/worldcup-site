@@ -197,11 +197,16 @@ function removeCompletedFromUpcoming(upcoming, matches) {
 }
 
 function winnerLabel(a, b, score, prefer) {
-  const [x, y] = score.split('-').map(Number);
+  const base = score.split('(')[0].replace(/[–—]/g, '-');
+  const suffix = score.includes('(') ? score.slice(score.indexOf('(')) : '';
+  const [x, y] = base.split('-').map(Number);
   if (isNaN(x) || isNaN(y)) return `${a} vs ${b}`;
   const win = x > y ? a : y > x ? b : prefer;
+  const winGoals = win === a ? x : y;
+  const losGoals = win === a ? y : x;
+  const displayScore = `${winGoals}-${losGoals}${suffix}`;
   const e = emoji(win);
-  return e ? `${e} ${win} ${score}` : `${win} ${score}`;
+  return e ? `${e} ${win} ${displayScore}` : `${win} ${displayScore}`;
 }
 
 function updateKnockoutFromMatches(ko, matches) {
