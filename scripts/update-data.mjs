@@ -95,6 +95,15 @@ function parseScoreCell(text) {
   return `${m[1]}-${m[2]}`;
 }
 
+function teamsFromTitle(title) {
+  const parts = title.split(/\bvs\.?\b/i).map(s => s.trim()).filter(Boolean);
+  if (parts.length !== 2) return null;
+  const a = cn(parts[0]);
+  const b = cn(parts[1]);
+  if (!isKnownTeam(a) || !isKnownTeam(b) || a === b) return null;
+  return [a, b];
+}
+
 /** 从各场比赛的 h3 小节里解析比分，跳过对阵图里的脏数据 */
 function parseKnockoutFromHtml(html, stage) {
   const found = [];
@@ -116,6 +125,8 @@ function parseKnockoutFromHtml(html, stage) {
   while ((section = sectionRe.exec(slice)) !== null) {
     const title = decodeHtml(section[1]);
     if (!/\bvs\.?\b/i.test(title)) continue;
+    const titleTeams = teamsFromTitle(title);
+    let fallbackScore = null;
 
     const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
     let row;
@@ -125,6 +136,7 @@ function parseKnockoutFromHtml(html, stage) {
 
       const score = parseScoreCell(cells[1]);
       if (!score) continue;
+      fallbackScore = score;
 
       const a = cn(cells[0]);
       const b = cn(cells[2]);
@@ -132,6 +144,12 @@ function parseKnockoutFromHtml(html, stage) {
 
       found.push({ a, b, s: score, g, d: '', t: '' });
       break;
+    }
+
+    // 有些场次的表格会把球队名拆成球员/事件行，导致无法从单行拿到队名；
+    // 此时使用 h3 标题中的 "A vs B" 作为球队名兜底，比分取该小节内最后一个合法比分。
+    if (titleTeams && fallbackScore && !found.some(m => m.g === g && ((m.a === titleTeams[0] && m.b === titleTeams[1]) || (m.a === titleTeams[1] && m.b === titleTeams[0])))) {
+      found.push({ a: titleTeams[0], b: titleTeams[1], s: fallbackScore, g, d: '', t: '' });
     }
   }
   return found;
