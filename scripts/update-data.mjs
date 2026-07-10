@@ -106,15 +106,16 @@ function teamsFromTitle(title) {
 
 /** 从各场比赛的 h3 小节里解析比分，跳过对阵图里的脏数据 */
 function parseKnockoutFromHtml(html, stage) {
-  const found = [];
-  const startRe = stage === 'r16'
-    ? /id="Round_of_16"/i
-    : /id="Round_of_32"/i;
-  const endRe = stage === 'r16'
-    ? /id="Quarterfinals"/i
-    : /id="Round_of_16"/i;
-  const g = stage === 'r16' ? '16强' : '32强';
+  const STAGES = {
+    r32: { start: /id="Round_of_32"/i, end: /id="Round_of_16"/i, g: '32强' },
+    r16: { start: /id="Round_of_16"/i, end: /id="Quarterfinals"/i, g: '16强' },
+    qf: { start: /id="Quarterfinals"/i, end: /id="Semifinals"/i, g: '8强' },
+  };
+  const cfg = STAGES[stage];
+  if (!cfg) return [];
+  const { start: startRe, end: endRe, g } = cfg;
 
+  const found = [];
   const start = html.search(startRe);
   if (start < 0) return found;
   const end = html.search(endRe, start + 1);
@@ -273,8 +274,10 @@ function r16SlotLabel(matches, a, b) {
 function qfLabel(matches, pairA, pairB) {
   const wA = r16WinnerTeam(matches, pairA[0], pairA[1]);
   const wB = r16WinnerTeam(matches, pairB[0], pairB[1]);
-  if (wA && wB) return `${wA} vs ${wB}`;
-  return '待定';
+  if (!wA || !wB) return '待定';
+  const m = findMatch(matches, '8强', wA, wB);
+  if (!m?.s || m.s.includes('vs')) return `${wA} vs ${wB}`;
+  return winnerLabel(m.a, m.b, m.s, wA);
 }
 
 function rebuildKnockout(ko, matches) {
@@ -309,10 +312,11 @@ function rebuildKnockout(ko, matches) {
 
 function inferLiveBadge(matches, upcoming) {
   const r16Done = matches.filter(m => m.g === '16强' && m.s && !m.s.includes('vs')).length;
-  const r16Total = 8;
-  if (r16Done < r16Total) return '16强进行中';
-  const qfUp = upcoming.some(u => u.g === '8强');
-  if (qfUp) return '8强即将开打';
+  if (r16Done < 8) return '16强进行中';
+  const qfDone = matches.filter(m => m.g === '8强' && m.s && !m.s.includes('vs')).length;
+  if (qfDone < 4) return qfDone > 0 ? '8强进行中' : '8强即将开打';
+  const sfUp = upcoming.some(u => u.g === '半决赛');
+  if (sfUp) return '半决赛即将开打';
   return '淘汰赛进行中';
 }
 
@@ -331,13 +335,14 @@ async function main() {
 
   try {
     const html = await fetchWikiHtml();
-    const r16 = parseKnockoutFromHtml(html, 'r16');
-    if (r16.length) {
-      const { matches, added } = mergeMatches(data.matches, r16);
+    for (const stage of ['r16', 'qf']) {
+      const parsed = parseKnockoutFromHtml(html, stage);
+      if (!parsed.length) continue;
+      const { matches, added } = mergeMatches(data.matches, parsed);
       if (added) {
         data.matches = matches;
         changed = true;
-        log.push(`matches +${added}`);
+        log.push(`${stage} +${added}`);
       }
     }
   } catch (e) {
