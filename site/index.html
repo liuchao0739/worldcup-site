@@ -850,11 +850,16 @@ function slotClass(text) {
   return '';
 }
 
-function renderPrediction() {
+function isSlotResultDone(label) {
+  if (!label || label === '待定') return false;
+  if (label.includes(' vs ')) return false;
+  return true;
+}
+
+function renderPrediction(ko) {
 // ===== 冠军预测漏斗（7.7 重置）=====
 const pFunnel = document.getElementById('predictFunnel');
-const locked = new Set(['1-2','1-4','1-6','1-8','1-10','1-12','1-14','1-16',
-  '2-3','2-7','2-11','2-15','10-15','11-2','11-4','11-6','11-8','11-10','11-12','11-14','11-16']);
+const k = ko || (typeof wcData !== 'undefined' && wcData?.knockout) || {};
 
 const leftPred = {
   r32: ['🇲🇦 摩洛哥','🇨🇦 加拿大','🇫🇷 法国','🇵🇾 巴拉圭','🇳🇴 挪威','🇧🇷 巴西','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰','🇲🇽 墨西哥'],
@@ -870,27 +875,26 @@ const rightPred = {
 };
 const championPred = '🇫🇷 法国 🏆';
 
-const predCell = (col, row, val, extra='') => {
-  const key = col+'-'+row;
-  const isLocked = locked.has(key);
+const predCell = (col, row, val, slotLabel, extra='') => {
   if (extra==='champ') return `<div style="grid-column:${col};grid-row:${row}" class="slot champion">${val}</div>`;
+  const isLocked = isSlotResultDone(slotLabel);
   return slotDiv(col, row, val, isLocked ? 'locked' : 'pred');
 };
 
 let pCells = bracketLabels(true);
 // 先画连接线（底层），再画格子（上层）
 pCells += bracketConnectors();
-for(let i=0;i<8;i++) pCells += predCell(1, 2+i*2, leftPred.r32[i]);
-for(let i=0;i<4;i++) pCells += predCell(2, 3+i*4, leftPred.r16[i]);
-for(let i=0;i<2;i++) pCells += predCell(3, 5+i*8, leftPred.qf[i]);
-pCells += predCell(4, 9, leftPred.sf[0]);
+for(let i=0;i<8;i++) pCells += predCell(1, 2+i*2, leftPred.r32[i], k.leftR32?.[i]);
+for(let i=0;i<4;i++) pCells += predCell(2, 3+i*4, leftPred.r16[i], k.leftR16?.[i]);
+for(let i=0;i<2;i++) pCells += predCell(3, 5+i*8, leftPred.qf[i], k.leftQF?.[i]);
+pCells += predCell(4, 9, leftPred.sf[0], k.leftSF);
 pCells += slotDiv(5, 9, '→', '');
-for(let i=0;i<8;i++) pCells += predCell(11, 2+i*2, rightPred.r32[i]);
-for(let i=0;i<4;i++) pCells += predCell(10, 3+i*4, rightPred.r16[i]);
-for(let i=0;i<2;i++) pCells += predCell(9, 5+i*8, rightPred.qf[i]);
-pCells += predCell(8, 9, rightPred.sf[0]);
+for(let i=0;i<8;i++) pCells += predCell(11, 2+i*2, rightPred.r32[i], k.rightR32?.[i]);
+for(let i=0;i<4;i++) pCells += predCell(10, 3+i*4, rightPred.r16[i], k.rightR16?.[i]);
+for(let i=0;i<2;i++) pCells += predCell(9, 5+i*8, rightPred.qf[i], k.rightQF?.[i]);
+pCells += predCell(8, 9, rightPred.sf[0], k.rightSF);
 pCells += slotDiv(7, 9, '←', '');
-pCells += predCell(6, 9, championPred, 'champ');
+pCells += predCell(6, 9, championPred, k.champion, 'champ');
 pFunnel.innerHTML = pCells;
 }
 
@@ -968,6 +972,7 @@ function renderAll(data) {
   renderResults(data.matches);
   renderKnockout(data.knockout);
   renderUpcoming(data.upcoming);
+  renderPrediction(data.knockout);
   layoutBracketPreviews();
 }
 
@@ -1504,7 +1509,6 @@ window.addEventListener('orientationchange', function() {
 });
 
 
-renderPrediction();
 loadData(false);
 setInterval(() => loadData(true), REFRESH_MS);
 document.addEventListener('visibilitychange', function() {
