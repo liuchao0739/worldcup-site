@@ -320,6 +320,36 @@ function inferLiveBadge(matches, upcoming) {
   return '淘汰赛进行中';
 }
 
+const QF_SCHEDULE = [
+  { side: 'left', idx: 0, d: '7.9', t: '04:00' },
+  { side: 'right', idx: 0, d: '7.10', t: '03:00' },
+  { side: 'left', idx: 1, d: '7.11', t: '05:00' },
+  { side: 'right', idx: 1, d: '7.11', t: '09:00' },
+];
+
+function upcomingMatchLabel(text) {
+  if (!text || text === '待定' || !text.includes(' vs ')) return null;
+  const parts = text.split(/\s+vs\s+/i);
+  if (parts.length !== 2) return null;
+  const a = parts[0].trim();
+  const b = parts[1].trim();
+  const ea = emoji(a);
+  const eb = emoji(b);
+  return `${ea ? ea + ' ' : ''}${a} vs ${eb ? eb + ' ' : ''}${b}`.replace(/\s+/g, ' ').trim();
+}
+
+/** 根据对阵图 8 强格子重建预告（替换 A/B 占位文案） */
+function rebuildUpcoming(upcoming, ko) {
+  const rest = upcoming.filter(u => u.g !== '8强');
+  const qf = [];
+  for (const { side, idx, d, t } of QF_SCHEDULE) {
+    const label = side === 'left' ? ko.leftQF[idx] : ko.rightQF[idx];
+    const m = upcomingMatchLabel(label);
+    if (m) qf.push({ d, m, t, g: '8强' });
+  }
+  return [...qf, ...rest];
+}
+
 async function main() {
   const raw = readFileSync(DATA_PATH, 'utf8');
   const data = JSON.parse(raw);
@@ -356,11 +386,14 @@ async function main() {
     log.push('knockout updated');
   }
 
+  const upcomingBefore = JSON.stringify(data.upcoming);
+  data.upcoming = rebuildUpcoming(data.upcoming, data.knockout);
   const { upcoming, removed } = removeCompletedFromUpcoming(data.upcoming, data.matches);
-  if (removed) {
-    data.upcoming = upcoming;
+  data.upcoming = upcoming;
+  if (removed) log.push(`upcoming -${removed}`);
+  if (JSON.stringify(data.upcoming) !== upcomingBefore) {
     changed = true;
-    log.push(`upcoming -${removed}`);
+    log.push('upcoming rebuilt');
   }
 
   const badge = inferLiveBadge(data.matches, data.upcoming);

@@ -843,6 +843,13 @@ function bracketConnectors() {
 const slotDiv = (col, row, text, cls='') =>
   `<div style="grid-column:${col};grid-row:${row}" class="slot ${cls}">${text}</div>`;
 
+/** 已完赛显示正常色；含 vs / 待定 用灰色虚线 */
+function slotClass(text) {
+  if (!text || text === '待定' || text === '→' || text === '←') return text === '待定' ? 'tbd' : '';
+  if (text.includes(' vs ')) return 'tbd';
+  return '';
+}
+
 function renderPrediction() {
 // ===== 冠军预测漏斗（7.7 重置）=====
 const pFunnel = document.getElementById('predictFunnel');
@@ -932,16 +939,16 @@ function renderKnockout(k) {
   let cells = bracketLabels(false);
   cells += bracketConnectors();
   for(let i=0;i<8;i++) cells += slotDiv(1, 2+i*2, k.leftR32[i], '');
-  for(let i=0;i<4;i++) cells += slotDiv(2, 3+i*4, k.leftR16[i], '');
-  cells += slotDiv(3, 5, k.leftQF[0], 'tbd');
-  cells += slotDiv(3, 13, k.leftQF[1], 'tbd');
-  cells += slotDiv(4, 9, k.leftSF, 'tbd');
+  for(let i=0;i<4;i++) cells += slotDiv(2, 3+i*4, k.leftR16[i], slotClass(k.leftR16[i]));
+  cells += slotDiv(3, 5, k.leftQF[0], slotClass(k.leftQF[0]));
+  cells += slotDiv(3, 13, k.leftQF[1], slotClass(k.leftQF[1]));
+  cells += slotDiv(4, 9, k.leftSF, slotClass(k.leftSF));
   cells += slotDiv(5, 9, '→', '');
   for(let i=0;i<8;i++) cells += slotDiv(11, 2+i*2, k.rightR32[i], '');
-  for(let i=0;i<4;i++) cells += slotDiv(10, 3+i*4, k.rightR16[i], k.rightR16[i].includes(' vs ')?'tbd':'');
-  cells += slotDiv(9, 5, k.rightQF[0], 'tbd');
-  cells += slotDiv(9, 13, k.rightQF[1], 'tbd');
-  cells += slotDiv(8, 9, k.rightSF, 'tbd');
+  for(let i=0;i<4;i++) cells += slotDiv(10, 3+i*4, k.rightR16[i], slotClass(k.rightR16[i]));
+  cells += slotDiv(9, 5, k.rightQF[0], slotClass(k.rightQF[0]));
+  cells += slotDiv(9, 13, k.rightQF[1], slotClass(k.rightQF[1]));
+  cells += slotDiv(8, 9, k.rightSF, slotClass(k.rightSF));
   cells += slotDiv(7, 9, '←', '');
   cells += '<div style="grid-column:6;grid-row:9" class="slot champion">' + (k.champion||'🏆 ?') + '</div>';
   funnelEl.innerHTML = cells;
