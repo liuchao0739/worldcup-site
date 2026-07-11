@@ -900,14 +900,13 @@ pFunnel.innerHTML = pCells;
 
 // render results
 function matchStage(m) {
-  if (m.g === '16强') return '16强';
-  if (m.g === '32强') return '32强';
-  const day = parseInt(m.d.split('.')[1], 10);
+  if (['决赛','半决赛','4强','8强','16强','32强'].includes(m.g)) return m.g;
+  const day = parseInt((m.d || '').split('.')[1], 10);
   if (day <= 18) return '小组赛第1轮';
   if (day <= 24) return '小组赛第2轮';
   return '小组赛第3轮';
 }
-const STAGE_ORDER = ['16强','32强','小组赛第3轮','小组赛第2轮','小组赛第1轮'];
+const STAGE_ORDER = ['决赛','半决赛','4强','8强','16强','32强','小组赛第3轮','小组赛第2轮','小组赛第1轮'];
 
 function renderResults(matches) {
 const resEl = document.getElementById('results');
@@ -922,9 +921,10 @@ matches.forEach(m => {
   const st = matchStage(m);
   (grouped[st] = grouped[st] || []).push(m);
 });
+const openStage = STAGE_ORDER.find(st => grouped[st]) || '';
 mobileEl.innerHTML = STAGE_ORDER.filter(st => grouped[st]).map(st => {
   const list = grouped[st];
-  const open = st === '16强' ? ' open' : '';
+  const open = st === openStage ? ' open' : '';
   const rows = list.map(m => `<div class="match-row">
     <span class="team-a">${m.a}</span>
     <span class="score-sm">${m.s}</span>
