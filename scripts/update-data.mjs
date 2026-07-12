@@ -75,13 +75,26 @@ const WIKI_UA = 'worldcup.xiandan.me/1.0 (data sync; +https://worldcup.xiandan.m
 
 async function fetchWikiHtml() {
   const url = 'https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup_knockout_stage&prop=text&formatversion=2&format=json';
-  const res = await fetch(url, {
-    headers: { 'User-Agent': WIKI_UA },
-    signal: AbortSignal.timeout(45000),
-  });
-  if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
-  const json = await res.json();
-  return json.parse?.text || '';
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': WIKI_UA },
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
+      const text = await res.text();
+      if (text.trimStart().startsWith('<')) throw new Error('Wikipedia returned HTML (rate limit?)');
+      const json = JSON.parse(text);
+      const html = json.parse?.text || '';
+      if (!html) throw new Error('Wikipedia empty body');
+      return html;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
+    }
+  }
+  throw lastErr;
 }
 
 function stripHtml(text) {
@@ -90,9 +103,15 @@ function stripHtml(text) {
 
 function parseScoreCell(text) {
   const plain = decodeHtml(text);
-  const m = plain.match(/^(\d+)\s*[–—-]\s*(\d+)$/);
+  const m = plain.match(/^(\d+)\s*[–—-]\s*(\d+)(?:\s*\(([^)]*)\))?$/);
   if (!m) return null;
-  return `${m[1]}-${m[2]}`;
+  let suffix = '';
+  if (m[3]) {
+    const note = m[3].toLowerCase();
+    if (note.includes('a.e.t') || note.includes('aet') || note.includes('extra')) suffix = '(加)';
+    else if (note.includes('pen')) suffix = '(点)';
+  }
+  return `${m[1]}-${m[2]}${suffix}`;
 }
 
 function teamsFromTitle(title) {
@@ -102,6 +121,31 @@ function teamsFromTitle(title) {
   const b = cn(parts[1]);
   if (!isKnownTeam(a) || !isKnownTeam(b) || a === b) return null;
   return [a, b];
+}
+
+function isDrawScore(score) {
+  const base = score.split('(')[0].replace(/[–—]/g, '-');
+  const [x, y] = base.split('-').map(Number);
+  return !isNaN(x) && !isNaN(y) && x === y;
+}
+
+function combineDrawAndPens(drawScore, penScore) {
+  const base = drawScore.split('(')[0].replace(/[–—]/g, '-').trim();
+  return `${base}(${penScore}点)`;
+}
+
+function winnerFromScore(score, a, b) {
+  if (!score || score.includes('vs')) return null;
+  const base = score.split('(')[0].replace(/[–—]/g, '-');
+  const [x, y] = base.split('-').map(Number);
+  if (!isNaN(x) && !isNaN(y) && x !== y) return x > y ? a : b;
+  const pen = score.match(/\((\d+)\s*[–—-]\s*(\d+)点\)/);
+  if (pen) {
+    const px = Number(pen[1]);
+    const py = Number(pen[2]);
+    if (px !== py) return px > py ? a : b;
+  }
+  return null;
 }
 
 /** 从各场比赛的 h3 小节里解析比分，跳过对阵图里的脏数据 */
@@ -127,6 +171,8 @@ function parseKnockoutFromHtml(html, stage) {
     const title = decodeHtml(section[1]);
     if (!/\bvs\.?\b/i.test(title)) continue;
     const titleTeams = teamsFromTitle(title);
+    let teamRow = null;
+    let penRowScore = null;
     let fallbackScore = null;
 
     const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
@@ -141,16 +187,33 @@ function parseKnockoutFromHtml(html, stage) {
 
       const a = cn(cells[0]);
       const b = cn(cells[2]);
-      if (!isKnownTeam(a) || !isKnownTeam(b) || a === b) continue;
+      if (isKnownTeam(a) && isKnownTeam(b) && a !== b) {
+        teamRow = { a, b, s: score };
+        continue;
+      }
 
-      found.push({ a, b, s: score, g, d: '', t: '' });
-      break;
+      if (/^\d+-\d+$/.test(score) && !isKnownTeam(a) && !isKnownTeam(b) && a && b) {
+        penRowScore = score;
+      }
+    }
+
+    if (teamRow) {
+      let finalScore = teamRow.s;
+      if (isDrawScore(teamRow.s) && penRowScore) {
+        finalScore = combineDrawAndPens(teamRow.s, penRowScore);
+      }
+      found.push({ a: teamRow.a, b: teamRow.b, s: finalScore, g, d: '', t: '' });
+      continue;
     }
 
     // 有些场次的表格会把球队名拆成球员/事件行，导致无法从单行拿到队名；
     // 此时使用 h3 标题中的 "A vs B" 作为球队名兜底，比分取该小节内最后一个合法比分。
     if (titleTeams && fallbackScore && !found.some(m => m.g === g && ((m.a === titleTeams[0] && m.b === titleTeams[1]) || (m.a === titleTeams[1] && m.b === titleTeams[0])))) {
-      found.push({ a: titleTeams[0], b: titleTeams[1], s: fallbackScore, g, d: '', t: '' });
+      let finalScore = fallbackScore;
+      if (isDrawScore(fallbackScore) && penRowScore) {
+        finalScore = combineDrawAndPens(fallbackScore, penRowScore);
+      }
+      found.push({ a: titleTeams[0], b: titleTeams[1], s: finalScore, g, d: '', t: '' });
     }
   }
   return found;
@@ -216,16 +279,25 @@ function removeCompletedFromUpcoming(upcoming, matches) {
 }
 
 function winnerLabel(a, b, score, prefer) {
+  const pen = score.match(/\((\d+)\s*[–—-]\s*(\d+)点\)/);
+  if (pen) {
+    const win = winnerFromScore(score, a, b) || prefer;
+    const px = Number(pen[1]);
+    const py = Number(pen[2]);
+    const wg = win === a ? px : py;
+    const lg = win === a ? py : px;
+    const e = emoji(win);
+    return e ? `${e} ${win} ${wg}-${lg}(点)` : `${win} ${wg}-${lg}(点)`;
+  }
   const base = score.split('(')[0].replace(/[–—]/g, '-');
   const suffix = score.includes('(') ? score.slice(score.indexOf('(')) : '';
   const [x, y] = base.split('-').map(Number);
   if (isNaN(x) || isNaN(y)) return `${a} vs ${b}`;
-  const win = x > y ? a : y > x ? b : prefer;
-  const winGoals = win === a ? x : y;
-  const losGoals = win === a ? y : x;
-  const displayScore = `${winGoals}-${losGoals}${suffix}`;
+  const win = winnerFromScore(score, a, b) || prefer;
+  const wg = win === a ? x : y;
+  const lg = win === a ? y : x;
   const e = emoji(win);
-  return e ? `${e} ${win} ${displayScore}` : `${win} ${displayScore}`;
+  return e ? `${e} ${win} ${wg}-${lg}${suffix}` : `${win} ${wg}-${lg}${suffix}`;
 }
 
 /** 对阵图拓扑：每对相邻 R32 格子汇入一场 R16（与 index.html 连线一致） */
@@ -251,12 +323,7 @@ function findMatch(matches, stage, a, b) {
 function r16WinnerTeam(matches, a, b) {
   const m = findMatch(matches, '16强', a, b);
   if (!m?.s || m.s.includes('vs')) return null;
-  const base = m.s.split('(')[0].replace(/[–—]/g, '-');
-  const [x, y] = base.split('-').map(Number);
-  if (isNaN(x) || isNaN(y)) return null;
-  if (x > y) return m.a;
-  if (y > x) return m.b;
-  return null;
+  return winnerFromScore(m.s, m.a, m.b);
 }
 
 function r32SlotLabel(matches, team, opp) {
@@ -278,6 +345,22 @@ function qfLabel(matches, pairA, pairB) {
   const m = findMatch(matches, '8强', wA, wB);
   if (!m?.s || m.s.includes('vs')) return `${wA} vs ${wB}`;
   return winnerLabel(m.a, m.b, m.s, wA);
+}
+
+function qfWinnerFromR16Pairs(matches, pairA, pairB) {
+  const wA = r16WinnerTeam(matches, pairA[0], pairA[1]);
+  const wB = r16WinnerTeam(matches, pairB[0], pairB[1]);
+  if (!wA || !wB) return null;
+  const m = findMatch(matches, '8强', wA, wB);
+  if (!m?.s || m.s.includes('vs')) return null;
+  return winnerFromScore(m.s, m.a, m.b);
+}
+
+function sfSlotLabel(matches, a, b) {
+  if (!a || !b) return '待定';
+  const m = findMatch(matches, '半决赛', a, b);
+  if (!m?.s || m.s.includes('vs')) return `${a} vs ${b}`;
+  return winnerLabel(m.a, m.b, m.s, a);
 }
 
 function rebuildKnockout(ko, matches) {
@@ -307,6 +390,12 @@ function rebuildKnockout(ko, matches) {
     qfLabel(matches, BRACKET.right[0].r16, BRACKET.right[1].r16),
     qfLabel(matches, BRACKET.right[2].r16, BRACKET.right[3].r16),
   ];
+  const leftSFA = qfWinnerFromR16Pairs(matches, BRACKET.left[0].r16, BRACKET.left[1].r16);
+  const leftSFB = qfWinnerFromR16Pairs(matches, BRACKET.right[0].r16, BRACKET.right[1].r16);
+  const rightSFA = qfWinnerFromR16Pairs(matches, BRACKET.left[2].r16, BRACKET.left[3].r16);
+  const rightSFB = qfWinnerFromR16Pairs(matches, BRACKET.right[2].r16, BRACKET.right[3].r16);
+  ko.leftSF = sfSlotLabel(matches, leftSFA, leftSFB);
+  ko.rightSF = sfSlotLabel(matches, rightSFA, rightSFB);
   return ko;
 }
 
@@ -315,8 +404,10 @@ function inferLiveBadge(matches, upcoming) {
   if (r16Done < 8) return '16强进行中';
   const qfDone = matches.filter(m => m.g === '8强' && m.s && !m.s.includes('vs')).length;
   if (qfDone < 4) return qfDone > 0 ? '8强进行中' : '8强即将开打';
-  const sfUp = upcoming.some(u => u.g === '半决赛');
-  if (sfUp) return '半决赛即将开打';
+  const sfDone = matches.filter(m => m.g === '半决赛' && m.s && !m.s.includes('vs')).length;
+  if (sfDone < 2) return sfDone > 0 ? '半决赛进行中' : '半决赛即将开打';
+  const finalUp = upcoming.some(u => u.g === '决赛');
+  if (finalUp) return '决赛即将开打';
   return '淘汰赛进行中';
 }
 
@@ -325,6 +416,11 @@ const QF_SCHEDULE = [
   { side: 'right', idx: 0, d: '7.10', t: '03:00' },
   { side: 'left', idx: 1, d: '7.11', t: '05:00' },
   { side: 'right', idx: 1, d: '7.11', t: '09:00' },
+];
+
+const SF_SCHEDULE = [
+  { side: 'left', d: '7.14', t: '03:00', venue: '达拉斯' },
+  { side: 'right', d: '7.15', t: '03:00', venue: '亚特兰大' },
 ];
 
 function upcomingMatchLabel(text) {
@@ -338,16 +434,33 @@ function upcomingMatchLabel(text) {
   return `${ea ? ea + ' ' : ''}${a} vs ${eb ? eb + ' ' : ''}${b}`.replace(/\s+/g, ' ').trim();
 }
 
-/** 根据对阵图 8 强格子重建预告（替换 A/B 占位文案） */
+/** 根据对阵图 8 强 / 半决赛格子重建预告（替换占位文案） */
 function rebuildUpcoming(upcoming, ko) {
-  const rest = upcoming.filter(u => u.g !== '8强');
+  const rest = upcoming.filter(u => !['8强', '半决赛'].includes(u.g));
   const qf = [];
   for (const { side, idx, d, t } of QF_SCHEDULE) {
     const label = side === 'left' ? ko.leftQF[idx] : ko.rightQF[idx];
     const m = upcomingMatchLabel(label);
     if (m) qf.push({ d, m, t, g: '8强' });
   }
-  return [...qf, ...rest];
+  const sf = [];
+  for (const { side, d, t, venue } of SF_SCHEDULE) {
+    const label = side === 'left' ? ko.leftSF : ko.rightSF;
+    const m = upcomingMatchLabel(label);
+    if (m) sf.push({ d, m, t, g: '半决赛', venue });
+    else sf.push({ d, m: `半决赛 · ${venue}`, t, g: '半决赛', venue });
+  }
+  return [...qf, ...sf, ...rest];
+}
+
+function inferFooterNote(matches, upcoming) {
+  const qfDone = matches.filter(m => m.g === '8强' && m.s && !m.s.includes('vs')).length;
+  const sfDone = matches.filter(m => m.g === '半决赛' && m.s && !m.s.includes('vs')).length;
+  if (sfDone >= 2) return '半决赛已结束 · 决赛 7.19 纽约';
+  if (sfDone > 0) return '半决赛进行中 · 决赛 7.19 纽约';
+  if (qfDone >= 4) return '8强已结束 · 半决赛 7.14 开打 · 决赛 7.19 纽约';
+  if (qfDone > 0) return '8强进行中 · 半决赛 7.14 开打 · 决赛 7.19 纽约';
+  return '16强已结束 · 8强进行中 · 决赛 7.19 纽约';
 }
 
 async function main() {
@@ -399,6 +512,12 @@ async function main() {
   const badge = inferLiveBadge(data.matches, data.upcoming);
   if (data.liveBadge !== badge) {
     data.liveBadge = badge;
+    changed = true;
+  }
+
+  const footer = inferFooterNote(data.matches, data.upcoming);
+  if (data.footerNote !== footer) {
+    data.footerNote = footer;
     changed = true;
   }
 

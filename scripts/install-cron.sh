@@ -3,12 +3,12 @@
 set -euo pipefail
 
 ROOT="/opt/worldcup-site"
-RUN='cd '"$ROOT"' && docker run --rm -v '"$ROOT"':/app -w /app node:22-alpine node scripts/update-data.mjs'
+RUN='cd '"$ROOT"' && docker run --rm --memory=96m --memory-swap=96m -v '"$ROOT"':/app -w /app node:22-alpine node scripts/update-data.mjs'
 LINE="*/15 * * * * $RUN >> /var/log/worldcup-update.log 2>&1"
 
-if crontab -l 2>/dev/null | grep -q 'worldcup-site.*node:22-alpine'; then
-  echo "✅ cron 已存在"
-else
-  (crontab -l 2>/dev/null; echo "$LINE") | crontab -
-  echo "✅ 已添加 cron：每 15 分钟自动更新 data.json"
-fi
+TMP=$(mktemp)
+crontab -l 2>/dev/null | grep -v 'worldcup-site.*node:22-alpine' > "$TMP" || true
+echo "$LINE" >> "$TMP"
+crontab "$TMP"
+rm -f "$TMP"
+echo "✅ cron 已更新：每 15 分钟自动更新 data.json（Docker 限 96MB）"
