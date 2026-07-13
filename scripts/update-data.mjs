@@ -419,9 +419,11 @@ const QF_SCHEDULE = [
 ];
 
 const SF_SCHEDULE = [
-  { side: 'left', d: '7.14', t: '03:00', venue: '达拉斯' },
-  { side: 'right', d: '7.15', t: '03:00', venue: '亚特兰大' },
+  { side: 'left', d: '7.15', t: '03:00', venue: '达拉斯' },
+  { side: 'right', d: '7.16', t: '03:00', venue: '亚特兰大' },
 ];
+
+const FINAL_SCHEDULE = { d: '7.20', t: '03:00', venue: '纽约' };
 
 function upcomingMatchLabel(text) {
   if (!text || text === '待定' || !text.includes(' vs ')) return null;
@@ -434,9 +436,9 @@ function upcomingMatchLabel(text) {
   return `${ea ? ea + ' ' : ''}${a} vs ${eb ? eb + ' ' : ''}${b}`.replace(/\s+/g, ' ').trim();
 }
 
-/** 根据对阵图 8 强 / 半决赛格子重建预告（替换占位文案） */
+/** 根据对阵图 8 强 / 半决赛 / 决赛格子重建预告（替换占位文案） */
 function rebuildUpcoming(upcoming, ko) {
-  const rest = upcoming.filter(u => !['8强', '半决赛'].includes(u.g));
+  const rest = upcoming.filter(u => !['8强', '半决赛', '决赛'].includes(u.g));
   const qf = [];
   for (const { side, idx, d, t } of QF_SCHEDULE) {
     const label = side === 'left' ? ko.leftQF[idx] : ko.rightQF[idx];
@@ -450,17 +452,24 @@ function rebuildUpcoming(upcoming, ko) {
     if (m) sf.push({ d, m, t, g: '半决赛', venue });
     else sf.push({ d, m: `半决赛 · ${venue}`, t, g: '半决赛', venue });
   }
-  return [...qf, ...sf, ...rest];
+  const fin = [{
+    d: FINAL_SCHEDULE.d,
+    m: `🏆 决赛 · ${FINAL_SCHEDULE.venue}`,
+    t: FINAL_SCHEDULE.t,
+    g: '决赛',
+    venue: FINAL_SCHEDULE.venue,
+  }];
+  return [...qf, ...sf, ...fin, ...rest];
 }
 
 function inferFooterNote(matches, upcoming) {
   const qfDone = matches.filter(m => m.g === '8强' && m.s && !m.s.includes('vs')).length;
   const sfDone = matches.filter(m => m.g === '半决赛' && m.s && !m.s.includes('vs')).length;
-  if (sfDone >= 2) return '半决赛已结束 · 决赛 7.19 纽约';
-  if (sfDone > 0) return '半决赛进行中 · 决赛 7.19 纽约';
-  if (qfDone >= 4) return '8强已结束 · 半决赛 7.14 开打 · 决赛 7.19 纽约';
-  if (qfDone > 0) return '8强进行中 · 半决赛 7.14 开打 · 决赛 7.19 纽约';
-  return '16强已结束 · 8强进行中 · 决赛 7.19 纽约';
+  if (sfDone >= 2) return '半决赛已结束 · 决赛 7.20 纽约';
+  if (sfDone > 0) return '半决赛进行中 · 决赛 7.20 纽约';
+  if (qfDone >= 4) return '8强已结束 · 半决赛 7.15 开打 · 决赛 7.20 纽约';
+  if (qfDone > 0) return '8强进行中 · 半决赛 7.15 开打 · 决赛 7.20 纽约';
+  return '16强已结束 · 8强进行中 · 决赛 7.20 纽约';
 }
 
 async function main() {

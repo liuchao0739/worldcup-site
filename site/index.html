@@ -961,7 +961,7 @@ function renderKnockout(k) {
 function renderUpcoming(upcoming) {
   const tlEl = document.getElementById('timeline');
   tlEl.innerHTML = upcoming.map(u =>
-    '<div class="day"><div class="date-label">📅 ' + u.d + ' ' + u.t + '</div><div class="match-mini">' + u.m + ' <span style="color:#5a7a5a;font-size:9px">' + u.g + '</span></div></div>'
+    '<div class="day"><div class="date-label">📅 ' + u.d + ' ' + u.t + ' <span style="color:#5a7a5a;font-size:9px;font-weight:400">北京时间</span></div><div class="match-mini">' + u.m + ' <span style="color:#5a7a5a;font-size:9px">' + u.g + '</span></div></div>'
   ).join('');
 }
 
