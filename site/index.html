@@ -104,6 +104,447 @@
   .pts { font-weight: 800; color: #FFD700; }
   .dash { color: #3a5a3a; }
 
+  /* ---- 球星风采 / 集锦 / 晋级之路 ---- */
+  .hl-section { padding: 0 12px 20px; }
+  .hl-hint {
+    padding: 0 16px 10px;
+    font-size: 11px; color: #6a8a6a; margin: 0;
+  }
+  .hl-tabs {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding: 0 0 12px; -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+  }
+  .hl-tabs::-webkit-scrollbar { display: none; }
+  .hl-tab {
+    flex: 0 0 auto;
+    border: 1px solid #1e3a2e;
+    background: #111d2b;
+    color: #8fb08f;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .hl-tab.active {
+    background: linear-gradient(90deg, #1a4a2a, #0e2e1a);
+    border-color: #2a6a3a;
+    color: #e8f5e8;
+  }
+  .hl-tab.has-dot::after {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #FFD700; margin-left: 6px; vertical-align: middle;
+  }
+  .hl-pane { display: none; }
+  .hl-pane.active { display: block; }
+  .hl-sub {
+    font-size: 13px; font-weight: 800; color: #a8c8a8;
+    margin: 4px 0 10px; letter-spacing: 1px;
+  }
+  .hl-moments {
+    display: flex; gap: 12px; overflow-x: auto;
+    padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width: 900px) {
+    .hl-moments {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      overflow: visible;
+    }
+  }
+  .hl-card {
+    flex: 0 0 160px;
+    background: linear-gradient(160deg, #142232 0%, #0e1a28 100%);
+    border: 1px solid #1e3a2e;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .hl-card.poster { flex: 0 0 196px; }
+  @media (min-width: 900px) {
+    .hl-card.poster { flex: initial; }
+  }
+  .hl-thumb-wrap {
+    position: relative; aspect-ratio: 16/9; background: #0a1218; cursor: pointer;
+  }
+  /* 手机：独立竖版 9:16；电脑：独立横版 16:9 — 两套图，contain 全身入画 */
+  .hl-thumb-wrap.poster-frame {
+    aspect-ratio: 9/16;
+    background: #050a10;
+  }
+  @media (min-width: 900px) {
+    .hl-thumb-wrap.poster-frame {
+      aspect-ratio: 16/9;
+    }
+  }
+  .hl-thumb-wrap img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  @media (max-width: 899px) {
+    .hl-thumb-wrap.poster-frame img,
+    .hl-thumb-wrap.poster-frame picture img {
+      object-fit: contain;
+      background: #050a10;
+    }
+  }
+  .hl-play {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.28); color: #fff; font-size: 28px;
+    pointer-events: none;
+  }
+  .hl-card-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .hl-card-title { font-size: 13px; font-weight: 700; color: #e8f5e8; }
+  .hl-card-match { font-size: 11px; color: #6a8a6a; }
+  .hl-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .hl-btn {
+    flex: 1; text-align: center;
+    border: 1px solid #1e3a2e; background: #0e1a28;
+    color: #8fb08f; border-radius: 6px;
+    padding: 6px 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+    text-decoration: none;
+  }
+  .hl-btn:hover { border-color: #2a6a3a; color: #c8e8c8; }
+  .hl-btn.hl-fs-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 13px;
+    background: #1a4a2a;
+    border-color: #2a6a3a;
+    color: #e8f5e8;
+  }
+  @media (max-width: 900px) {
+    .hl-btn.hl-fs-btn {
+      padding: 10px 16px;
+      font-size: 14px;
+      min-height: 40px;
+    }
+  }
+  .hl-reels {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 800px) {
+    .hl-reels { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+  }
+  .hl-reel {
+    background: linear-gradient(160deg, #142232 0%, #0e1a28 100%);
+    border: 1px solid #1e3a2e;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .hl-reel-title {
+    padding: 10px 12px 6px;
+    font-size: 13px; font-weight: 700; color: #e8f5e8;
+  }
+  .hl-embed {
+    position: relative; width: 100%; aspect-ratio: 16/9; background: #000;
+  }
+  .hl-embed iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  }
+  .hl-ext {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 16px;
+    min-height: 140px;
+    justify-content: center;
+  }
+  .hl-ext-label {
+    font-size: 11px; color: #6a8a6a;
+  }
+  .hl-ext a.hl-btn {
+    display: inline-block; text-decoration: none; text-align: center;
+    max-width: 220px;
+  }
+  .hl-badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    color: #00a1d6; background: rgba(0,161,214,.12);
+    border: 1px solid rgba(0,161,214,.35);
+    border-radius: 4px; padding: 1px 6px; margin-left: 6px;
+    vertical-align: middle;
+  }
+  .hl-badge.ext {
+    color: #c8a86a; background: rgba(200,168,106,.12);
+    border-color: rgba(200,168,106,.35);
+  }
+  .hl-journey-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 700px) {
+    .hl-journey-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  }
+  .hl-journey {
+    background: linear-gradient(160deg, #142232 0%, #0e1a28 100%);
+    border: 1px solid #1e3a2e;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .hl-journey-thumb {
+    position: relative; aspect-ratio: 16/9; cursor: pointer; background: #0a1218;
+  }
+  .hl-journey-thumb img { width:100%; height:100%; object-fit: cover; display:block; }
+  .hl-journey-body { padding: 12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+  .hl-journey-team {
+    font-size: 16px; font-weight: 800; color: #e8f5e8;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hl-journey-status {
+    font-size: 11px; font-weight: 700; color: #FFD700;
+    background: rgba(255,215,0,.1); border: 1px solid rgba(255,215,0,.25);
+    border-radius: 999px; padding: 2px 8px;
+  }
+  .hl-journey-path { font-size: 12px; color: #8fb08f; line-height: 1.5; }
+  .hl-journey-title { font-size: 13px; color: #c8e0c8; font-weight: 600; }
+  .hl-empty {
+    color: #5a7a5a; font-size: 12px;
+    padding: 16px; text-align: center;
+    border: 1px dashed #1e3a2e; border-radius: 8px;
+    background: rgba(14,26,40,.5);
+  }
+  .hl-player-overlay {
+    display: none; position: fixed; inset: 0; z-index: 12000;
+    background: rgba(0,0,0,.88);
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .hl-player-overlay.open { display: flex; }
+  .hl-player-panel {
+    width: min(920px, 100%);
+    background: #0e1a28;
+    border: 1px solid #1e3a2e;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .hl-player-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; gap: 12px;
+  }
+  .hl-player-head strong {
+    color: #e8f5e8; font-size: 14px;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .hl-player-head-actions {
+    display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  }
+  .hl-player-close {
+    border: 0; background: transparent; color: #8fb08f;
+    font-size: 22px; cursor: pointer; line-height: 1;
+    padding: 4px 6px;
+  }
+  .hl-player-body { position: relative; aspect-ratio: 16/9; background: #000; }
+  .hl-player-body iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  }
+
+  /* 手机横屏全屏 —— iOS 无 Fullscreen API 时用强制旋转铺满 */
+  .hl-player-overlay.land-fs {
+    padding: 0 !important;
+    background: #000 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+  .hl-player-overlay.land-fs .hl-player-panel {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: #000 !important;
+  }
+  .hl-player-overlay.land-fs .hl-player-head {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 5;
+    background: linear-gradient(180deg, rgba(0,0,0,.75), transparent);
+    padding: 10px 14px 36px;
+  }
+  .hl-player-overlay.land-fs .hl-player-body {
+    flex: 1 1 auto !important;
+    aspect-ratio: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+  /* 竖屏手机：整块旋转成横屏满屏（不用系统 API） */
+  @media (max-width: 900px) {
+    .hl-player-overlay.land-fs.need-rotate {
+      overflow: hidden;
+    }
+    .hl-player-overlay.land-fs.need-rotate .hl-player-panel {
+      position: fixed !important;
+      width: 100vh !important;
+      height: 100vw !important;
+      top: 50% !important;
+      left: 50% !important;
+      margin: 0 !important;
+      transform: translate(-50%, -50%) rotate(90deg) !important;
+      transform-origin: center center !important;
+      -webkit-transform: translate(-50%, -50%) rotate(90deg) !important;
+    }
+    .hl-player-overlay.land-fs.need-rotate .hl-player-body,
+    .hl-player-overlay.land-fs.need-rotate .hl-player-body iframe {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  }
+  body.hl-fs-lock {
+    overflow: hidden !important;
+    touch-action: none;
+  }
+  .hl-fs-toast {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: 18%;
+    transform: translateX(-50%);
+    z-index: 6;
+    background: rgba(0,0,0,.72);
+    color: #e8f5e8;
+    border: 1px solid #2a6a3a;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .hl-player-overlay.land-fs .hl-fs-toast.show { display: block; }
+
+  .hl-photo-panel { width: min(960px, 100%); position: relative; }
+  .hl-photo-body {
+    background: #0a1218;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 240px;
+    max-height: min(82vh, 920px);
+    overflow: hidden;
+    padding: 8px 48px;
+    position: relative;
+    touch-action: pan-y pinch-zoom;
+  }
+  .hl-photo-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 200px;
+  }
+  .hl-photo-stage img {
+    width: auto; height: auto;
+    max-width: 100%;
+    max-height: min(80vh, 900px);
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .hl-photo-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 40px;
+    height: 64px;
+    border: 1px solid #2a6a3a;
+    background: rgba(8, 18, 24, 0.82);
+    color: #e8f5e8;
+    font-size: 28px;
+    line-height: 1;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .hl-photo-nav:hover { background: rgba(26, 74, 42, 0.92); }
+  .hl-photo-nav.prev { left: 6px; }
+  .hl-photo-nav.next { right: 6px; }
+  .hl-photo-nav:disabled {
+    opacity: 0.25;
+    cursor: default;
+    pointer-events: none;
+  }
+  .hl-photo-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 14px 8px;
+    font-size: 11px;
+    color: #6a8a6a;
+  }
+  .hl-photo-swipe-hint { opacity: 0.85; }
+  @media (max-width: 899px) {
+    .hl-photo-body { padding: 0 36px; }
+    .hl-photo-nav { width: 34px; height: 52px; font-size: 24px; }
+    .hl-photo-nav.prev { left: 2px; }
+    .hl-photo-nav.next { right: 2px; }
+  }
+  /* legacy single-img selector kept for compatibility */
+  .hl-photo-body img {
+    width: auto; height: auto;
+    max-width: 100%;
+    max-height: min(80vh, 900px);
+    object-fit: contain;
+    display: block;
+  }
+  /* 手机端：竖版大图铺满高度，对齐电脑端「完整入画」 */
+  @media (max-width: 899px) {
+    .hl-photo-panel.mob-port { width: min(100%, 100vw); }
+    .hl-photo-body {
+      min-height: 62vh;
+      max-height: 78vh;
+      padding: 0;
+      background: #050a10;
+    }
+    .hl-photo-body img {
+      width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+    }
+    .hl-photo-stage img {
+      width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+    }
+  }
+  /* 电脑端：横版电影图完整显示，绝不强制裁切人脸 */
+  @media (min-width: 900px) {
+    .hl-photo-panel.desk-wide { width: min(1180px, 96vw); }
+    .hl-photo-panel.desk-tall { width: min(720px, 92vw); }
+    .hl-photo-body { max-height: min(78vh, 820px); }
+    .hl-photo-body img { max-height: min(76vh, 800px); }
+  }
+  .hl-photo-actions {
+    padding: 12px 14px 14px; display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .hl-photo-actions .hl-btn { flex: 0 0 auto; min-width: 120px; }
+  .hl-thumb-wrap.photo-only { cursor: zoom-in; }
+  .hl-thumb-wrap.poster-frame img,
+  .hl-thumb-wrap.poster-frame picture,
+  .hl-thumb-wrap.poster-frame picture img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  @media (min-width: 900px) {
+    /* 桌面卡片用完整横构图，object-fit cover 基于本来就是 16:9 的图 */
+    .hl-thumb-wrap.poster-frame img { object-position: center center; }
+  }
+  .hl-journey-heat {
+    font-size: 10px; color: #6a8a6a; font-weight: 600;
+  }
+
   /* ---- 比赛结果 ---- */
   .results-section {
     padding: 0 12px 16px;
@@ -722,12 +1163,68 @@
 <div class="section-title">📅 后续赛程预告（16强 → 决赛）</div>
 <div class="timeline" id="timeline"></div>
 
+<!-- ==================== 球星风采 · 集锦 · 晋级之路 ==================== -->
+<div class="section-title">🌟 球星风采</div>
+<p class="hl-hint">按球星分类 · 写实壁纸 / 名场面 · 手机竖版与电脑横版两套 · 图片本地缓存加速</p>
+<div class="hl-section" id="momentsSection">
+  <div class="hl-tabs" id="momentTabs" role="tablist"></div>
+  <div id="momentPanes"></div>
+</div>
+
+<div class="section-title">⚽ 进球集锦</div>
+<p class="hl-hint">按淘汰赛阶段 · 点封面站内播放 · 不跳出网页</p>
+<div class="hl-section" id="reelsSection">
+  <div class="hl-tabs" id="reelTabs" role="tablist"></div>
+  <div id="reelPanes"></div>
+</div>
+
+<div class="section-title">🛤 晋级之路</div>
+<p class="hl-hint">全部 48 队 · 热度排序 · 每队独立片源 · 点封面站内播放</p>
+<div class="hl-section">
+  <div class="hl-journey-grid" id="hlJourneys"></div>
+</div>
+
+<div class="hl-player-overlay" id="hlPlayerOverlay">
+  <div class="hl-player-panel" id="hlPlayerPanel">
+    <div class="hl-player-head">
+      <strong id="hlPlayerTitle">播放</strong>
+      <div class="hl-player-head-actions">
+        <button type="button" class="hl-btn hl-fs-btn" id="hlPlayerFs">横屏全屏</button>
+        <button type="button" class="hl-player-close" id="hlPlayerClose" aria-label="关闭">×</button>
+      </div>
+    </div>
+    <div class="hl-player-body" id="hlPlayerBody"></div>
+    <div class="hl-fs-toast" id="hlFsToast">已横屏铺满 · 再点可退出</div>
+  </div>
+</div>
+
+<div class="hl-player-overlay" id="hlPhotoOverlay" tabindex="-1">
+  <div class="hl-player-panel hl-photo-panel">
+    <div class="hl-player-head">
+      <strong id="hlPhotoTitle">球星风采</strong>
+      <button type="button" class="hl-player-close" id="hlPhotoClose" aria-label="关闭">×</button>
+    </div>
+    <div class="hl-photo-body" id="hlPhotoBody">
+      <button type="button" class="hl-photo-nav prev" id="hlPhotoPrev" aria-label="上一张">‹</button>
+      <div class="hl-photo-stage" id="hlPhotoStage"></div>
+      <button type="button" class="hl-photo-nav next" id="hlPhotoNext" aria-label="下一张">›</button>
+    </div>
+    <div class="hl-photo-meta">
+      <span id="hlPhotoCounter"></span>
+      <span class="hl-photo-swipe-hint">左右滑动 / 方向键切换</span>
+    </div>
+    <div class="hl-photo-actions">
+      <button type="button" class="hl-btn" id="hlPhotoSave">保存高清图</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== 12 组积分榜 ==================== -->
 <div class="section-title">📊 小组赛积分榜</div>
 <div class="standings-grid" id="standings"></div>
 
 <!-- ==================== 冠军预测 ==================== -->
-<div class="bracket-title">🔮 冠军预测 <span style="font-weight:400;font-size:11px;color:#5a7a5a;margin-left:8px">7.7 重置 · 灰底=赛果 · 白底=预测</span></div>
+<div class="bracket-title">🔮 冠军预测 <span style="font-weight:400;font-size:11px;color:#5a7a5a;margin-left:8px">7.15 重置 · 灰底=赛果 · 白底=预测</span></div>
 <p class="bracket-tap-hint">📱 点击放大全屏 · 长按或点「保存」可存为图片</p>
 <div class="bracket-preview" data-bracket-title="🔮 冠军预测">
   <div class="bracket-preview-inner">
@@ -857,7 +1354,7 @@ function isSlotResultDone(label) {
 }
 
 function renderPrediction(ko) {
-// ===== 冠军预测漏斗（7.7 重置）=====
+// ===== 冠军预测漏斗（7.15 重置：法国出局，改押阿根廷）=====
 const pFunnel = document.getElementById('predictFunnel');
 const k = ko || (typeof wcData !== 'undefined' && wcData?.knockout) || {};
 
@@ -865,7 +1362,7 @@ const leftPred = {
   r32: ['🇲🇦 摩洛哥','🇨🇦 加拿大','🇫🇷 法国','🇵🇾 巴拉圭','🇳🇴 挪威','🇧🇷 巴西','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰','🇲🇽 墨西哥'],
   r16: ['🇲🇦 摩洛哥','🇫🇷 法国','🇳🇴 挪威','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰'],
   qf:  ['🇫🇷 法国','🏴󠁧󠁢󠁥󠁮󠁧󠁿 英格兰'],
-  sf:  ['🇫🇷 法国'],
+  sf:  ['🇪🇸 西班牙'],
 };
 const rightPred = {
   r32: ['🇪🇸 西班牙','🇵🇹 葡萄牙','🇺🇸 美国','🇧🇪 比利时','🇦🇷 阿根廷','🇪🇬 埃及','🇨🇭 瑞士','🇨🇴 哥伦比亚'],
@@ -873,12 +1370,17 @@ const rightPred = {
   qf:  ['🇪🇸 西班牙','🇦🇷 阿根廷'],
   sf:  ['🇦🇷 阿根廷'],
 };
-const championPred = '🇫🇷 法国 🏆';
+const championPred = '🇦🇷 阿根廷 🏆';
 
 const predCell = (col, row, val, slotLabel, extra='') => {
-  if (extra==='champ') return `<div style="grid-column:${col};grid-row:${row}" class="slot champion">${val}</div>`;
   const isLocked = isSlotResultDone(slotLabel);
-  return slotDiv(col, row, val, isLocked ? 'locked' : 'pred');
+  // 完赛：灰底显示真实赛果；未完赛：白底显示预测
+  const display = isLocked ? slotLabel : val;
+  if (extra==='champ') {
+    const champDone = isLocked && slotLabel && slotLabel !== '🏆 ?';
+    return `<div style="grid-column:${col};grid-row:${row}" class="slot champion">${champDone ? slotLabel : val}</div>`;
+  }
+  return slotDiv(col, row, display, isLocked ? 'locked' : 'pred');
 };
 
 let pCells = bracketLabels(true);
@@ -965,6 +1467,779 @@ function renderUpcoming(upcoming) {
   ).join('');
 }
 
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, function(c) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
+  });
+}
+
+function hlPosterUri(title, match) {
+  const t = String(title || '球星风采').slice(0, 18);
+  const m = String(match || '').slice(0, 22);
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">'
+    + '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
+    + '<stop offset="0%" stop-color="#0e2e1a"/><stop offset="100%" stop-color="#142232"/>'
+    + '</linearGradient></defs>'
+    + '<rect width="640" height="360" fill="url(#g)"/>'
+    + '<text x="320" y="180" text-anchor="middle" fill="#e8f5e8" font-size="28" font-family="system-ui,sans-serif" font-weight="700">' + escHtml(t) + '</text>'
+    + '<text x="320" y="220" text-anchor="middle" fill="#8fb08f" font-size="18" font-family="system-ui,sans-serif">' + escHtml(m) + '</text>'
+    + '</svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function biliEmbed(bvid) {
+  // 不自动播放；允许 iframe 内全屏
+  return 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid)
+    + '&page=1&high_quality=1&danmaku=0&as_wide=1&autoplay=0';
+}
+
+function mediaKind(item) {
+  if (!item) return null;
+  if (item.bilibiliId) return 'bilibili';
+  if (item.url || item.searchUrl) return 'url';
+  if (item.youtubeId) return 'youtube';
+  return null;
+}
+
+function mediaWatchUrl(item) {
+  if (item.bilibiliId) return 'https://www.bilibili.com/video/' + item.bilibiliId + '/';
+  if (item.url) return item.url;
+  if (item.searchUrl) return item.searchUrl;
+  if (item.youtubeId) return 'https://www.youtube.com/watch?v=' + item.youtubeId;
+  return '#';
+}
+
+function isDesktopWide() {
+  return window.matchMedia && window.matchMedia('(min-width: 900px)').matches;
+}
+
+function isMobileViewport() {
+  return window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+}
+
+function momentCover(item) {
+  if (!item) return '';
+  if (isDesktopWide()) {
+    return item.coverDesktop || item.coverWide || item.cover || '';
+  }
+  return item.cover || '';
+}
+
+function wideCoverPath(cover) {
+  // legacy helper — desktop now uses coverDesktop
+  if (!cover) return '';
+  return cover;
+}
+
+let hlActiveCountry = null;
+let hlActiveStar = null;
+let hlActiveStage = null;
+let hlPhotoItem = null;
+let hlPhotoGallery = [];
+let hlPhotoIndex = 0;
+let hlPhotoTouchX = 0;
+let hlPhotoKeyHold = null;
+let hlPhotoKeyInterval = null;
+const hlPhotoImgCache = new Map();
+const hlItemMap = {};
+
+/** 预取并写入 Cache API，二次打开更顺滑 */
+function prefetchMediaUrls(urls) {
+  if (!urls || !urls.length) return;
+  const list = urls.filter(Boolean);
+  if (!list.length) return;
+  if (!('caches' in window)) {
+    list.slice(0, 8).forEach(function(u) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = u;
+    });
+    return;
+  }
+    caches.open('wc-media-v3').then(function(cache) {
+    list.slice(0, 16).forEach(function(u) {
+      cache.match(u).then(function(hit) {
+        if (hit) return;
+        fetch(u, { cache: 'force-cache' }).then(function(res) {
+          if (res && res.ok) cache.put(u, res.clone());
+        }).catch(function() {});
+      });
+    });
+  }).catch(function() {});
+}
+
+function starTabLabel(s) {
+  if (s.id === '全部' || s.name === '全部') return '全部';
+  if (s.name === '名场面') return '✨ 名场面';
+  const num = s.number ? (' · ' + s.number + '号') : '';
+  return (s.flag || '') + ' ' + s.name + num;
+}
+
+function collectStarPhotos(stars, activeId) {
+  if (!stars || !stars.length) return [];
+  if (activeId === '全部') {
+    const all = [];
+    stars.forEach(function(s) {
+      (s.photos || []).forEach(function(p) { all.push(p); });
+    });
+    return all;
+  }
+  const hit = stars.find(function(s) { return s.id === activeId || s.name === activeId; });
+  return hit ? (hit.photos || []) : [];
+}
+
+function showFsToast(msg) {
+  const toast = document.getElementById('hlFsToast');
+  if (!toast) return;
+  if (msg) toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(showFsToast._t);
+  showFsToast._t = setTimeout(function() { toast.classList.remove('show'); }, 2200);
+}
+
+function exitNativeFullscreen() {
+  const doc = document;
+  if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+    const exit = doc.exitFullscreen || doc.webkitExitFullscreen;
+    if (exit) {
+      try { exit.call(doc); } catch (e) {}
+    }
+  }
+  try {
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch (e) {}
+}
+
+function enterNativeFullscreen(el) {
+  if (!el) return Promise.resolve(false);
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!req) return Promise.resolve(false);
+  try {
+    const p = req.call(el);
+    return Promise.resolve(p).then(function() { return true; }).catch(function() { return false; });
+  } catch (e) {
+    return Promise.resolve(false);
+  }
+}
+
+function setPlayerLandFs(on) {
+  const overlay = document.getElementById('hlPlayerOverlay');
+  const fsBtn = document.getElementById('hlPlayerFs');
+  if (!overlay) return;
+  if (on) {
+    overlay.classList.add('land-fs');
+    // 竖屏手机一律强制 CSS 旋转横铺（不依赖系统全屏 API）
+    const portraitMobile = isMobileViewport() && window.matchMedia('(orientation: portrait)').matches;
+    overlay.classList.toggle('need-rotate', !!portraitMobile);
+    document.body.classList.add('hl-fs-lock');
+    if (fsBtn) fsBtn.textContent = '退出全屏';
+    showFsToast(portraitMobile ? '已横屏铺满（可旋转手机）' : '已全屏播放');
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(function() {});
+      }
+    } catch (e) {}
+  } else {
+    overlay.classList.remove('land-fs', 'need-rotate');
+    document.body.classList.remove('hl-fs-lock');
+    if (fsBtn) fsBtn.textContent = '横屏全屏';
+    exitNativeFullscreen();
+  }
+}
+
+function togglePlayerFullscreen() {
+  const overlay = document.getElementById('hlPlayerOverlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  const goingOn = !overlay.classList.contains('land-fs');
+  setPlayerLandFs(goingOn);
+  if (goingOn) {
+    // 系统全屏能进就进；进不了也已有 CSS 横屏铺满
+    enterNativeFullscreen(overlay);
+  }
+}
+
+function openHighlightPlayer(item, title) {
+  const overlay = document.getElementById('hlPlayerOverlay');
+  const body = document.getElementById('hlPlayerBody');
+  const titleEl = document.getElementById('hlPlayerTitle');
+  if (!overlay || !body) return;
+  if (titleEl) titleEl.textContent = title || item.title || item.team || '播放';
+  const kind = mediaKind(item);
+  if (kind === 'bilibili') {
+    body.innerHTML = '<iframe src="' + biliEmbed(item.bilibiliId)
+      + '" title="' + escHtml(titleEl.textContent)
+      + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen *" '
+      + 'allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" '
+      + 'loading="lazy" scrolling="no" framespacing="0"></iframe>';
+    overlay.classList.add('open');
+    // 手机打开后自动进入横屏铺满，避免点播放器内置全屏无效
+    if (isMobileViewport()) {
+      setTimeout(function() { setPlayerLandFs(true); }, 60);
+    } else {
+      setPlayerLandFs(false);
+    }
+    return;
+  }
+  window.open(mediaWatchUrl(item), '_blank', 'noopener,noreferrer');
+}
+
+function closeHighlightPlayer() {
+  const overlay = document.getElementById('hlPlayerOverlay');
+  const body = document.getElementById('hlPlayerBody');
+  setPlayerLandFs(false);
+  if (body) body.innerHTML = '';
+  if (overlay) overlay.classList.remove('open');
+}
+
+function getVisiblePhotoKeys() {
+  const pane = document.querySelector('#momentPanes .hl-pane.active');
+  if (!pane) return [];
+  return Array.prototype.map.call(
+    pane.querySelectorAll('[data-hl-key][data-hl-action="photo"]'),
+    function(el) { return el.getAttribute('data-hl-key'); }
+  ).filter(Boolean);
+}
+
+function buildPhotoGallery(key) {
+  const keys = getVisiblePhotoKeys();
+  const gallery = keys.map(function(k) { return hlItemMap[k]; }).filter(Boolean);
+  if (!gallery.length && key && hlItemMap[key]) gallery.push(hlItemMap[key]);
+  return { gallery: gallery, index: Math.max(0, keys.indexOf(key)) };
+}
+
+function updatePhotoNavUi() {
+  const prev = document.getElementById('hlPhotoPrev');
+  const next = document.getElementById('hlPhotoNext');
+  const counter = document.getElementById('hlPhotoCounter');
+  const total = hlPhotoGallery.length;
+  const canNav = total > 1;
+  if (prev) prev.disabled = !canNav;
+  if (next) next.disabled = !canNav;
+  if (counter) {
+    counter.textContent = total ? ((hlPhotoIndex + 1) + ' / ' + total) : '';
+  }
+}
+
+function photoUrl(item) {
+  if (!item) return '';
+  return momentCover(item) || item.cover || hlPosterUri(item.title || '球星风采', item.match || '');
+}
+
+function warmPhotoCache(items) {
+  if (!items || !items.length) return;
+  items.forEach(function(item) {
+    const url = photoUrl(item);
+    if (!url || hlPhotoImgCache.has(url)) return;
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    hlPhotoImgCache.set(url, img);
+  });
+}
+
+function stopPhotoKeyNav() {
+  hlPhotoKeyHold = null;
+  if (hlPhotoKeyInterval) {
+    clearInterval(hlPhotoKeyInterval);
+    hlPhotoKeyInterval = null;
+  }
+}
+
+function prefetchAdjacentPhotos() {
+  if (!hlPhotoGallery.length) return;
+  const items = [];
+  [-1, 0, 1, 2].forEach(function(off) {
+    const item = hlPhotoGallery[hlPhotoIndex + off];
+    if (item) items.push(item);
+  });
+  warmPhotoCache(items);
+  prefetchMediaUrls(items.map(photoUrl).filter(Boolean));
+}
+
+function renderPhotoLightboxAt(index) {
+  const overlay = document.getElementById('hlPhotoOverlay');
+  const stage = document.getElementById('hlPhotoStage');
+  const titleEl = document.getElementById('hlPhotoTitle');
+  const panel = overlay && overlay.querySelector('.hl-photo-panel');
+  if (!overlay || !stage || !hlPhotoGallery.length) return;
+  const total = hlPhotoGallery.length;
+  hlPhotoIndex = ((index % total) + total) % total;
+  const item = hlPhotoGallery[hlPhotoIndex];
+  hlPhotoItem = item;
+  const safeTitle = item.title || '球星风采';
+  if (titleEl) titleEl.textContent = safeTitle;
+  const cover = photoUrl(item);
+  if (panel) {
+    panel.classList.remove('desk-wide', 'desk-tall', 'mob-port');
+    if (isDesktopWide()) panel.classList.add(item.coverDesktop ? 'desk-wide' : 'desk-tall');
+    else panel.classList.add('mob-port');
+  }
+  let img = stage.querySelector('img');
+  if (!img) {
+    img = document.createElement('img');
+    img.decoding = 'async';
+    stage.appendChild(img);
+  }
+  if (img.getAttribute('src') !== cover) img.src = cover;
+  img.alt = safeTitle;
+  updatePhotoNavUi();
+  prefetchAdjacentPhotos();
+}
+
+function navigatePhoto(delta) {
+  if (!hlPhotoGallery.length || hlPhotoGallery.length < 2) return;
+  renderPhotoLightboxAt(hlPhotoIndex + delta);
+}
+
+function openPhotoLightbox(item, title, key) {
+  const overlay = document.getElementById('hlPhotoOverlay');
+  if (!overlay || !item) return;
+  const built = buildPhotoGallery(key);
+  hlPhotoGallery = built.gallery.length ? built.gallery : [item];
+  let index = built.index;
+  if (index < 0) index = hlPhotoGallery.indexOf(item);
+  if (index < 0) index = 0;
+  renderPhotoLightboxAt(index);
+  overlay.classList.add('open');
+  warmPhotoCache(hlPhotoGallery);
+  try { overlay.focus({ preventScroll: true }); } catch (err) { overlay.focus(); }
+}
+
+function closePhotoLightbox() {
+  const overlay = document.getElementById('hlPhotoOverlay');
+  const stage = document.getElementById('hlPhotoStage');
+  stopPhotoKeyNav();
+  hlPhotoItem = null;
+  hlPhotoGallery = [];
+  hlPhotoIndex = 0;
+  if (stage) stage.innerHTML = '';
+  if (overlay) overlay.classList.remove('open');
+  updatePhotoNavUi();
+}
+
+function saveHighlightThumb(item, title) {
+  const safeTitle = title || item.title || '球星风采';
+  const cover = momentCover(item) || item.cover || hlPosterUri(safeTitle, item.match || item.path || '');
+  showBracketSaveOverlay(cover, safeTitle, isTouchMobile()
+    ? '长按上方高清图，选择「保存图片」到相册'
+    : '可点击下方按钮分享，或右键图片另存为');
+}
+
+function renderPhotoCard(m, key) {
+  hlItemMap[key] = m;
+  const cover = m.cover || hlPosterUri(m.title, m.match || '');
+  const desk = m.coverDesktop || '';
+  const badge = m.scene ? ' <span class="hl-badge">名场面</span>' : (m.real ? ' <span class="hl-badge">实拍</span>' : '');
+  return '<article class="hl-card poster">'
+    + '<div class="hl-thumb-wrap poster-frame photo-only" data-hl-key="' + escHtml(key) + '" data-hl-action="photo">'
+    + '<picture>'
+    + (desk ? '<source media="(min-width: 900px)" srcset="' + escHtml(desk) + '">' : '')
+    + '<img src="' + escHtml(cover) + '" alt="' + escHtml(m.title) + '" loading="lazy" decoding="async" fetchpriority="low">'
+    + '</picture></div>'
+    + '<div class="hl-card-body">'
+    + '<div class="hl-card-title">' + escHtml(m.title) + badge + '</div>'
+    + '<div class="hl-card-match">' + escHtml(m.match || '') + '</div>'
+    + '<div class="hl-card-actions">'
+    + '<button type="button" class="hl-btn" data-hl-key="' + escHtml(key) + '" data-hl-action="photo">查看</button>'
+    + '<button type="button" class="hl-btn" data-hl-key="' + escHtml(key) + '" data-hl-action="save">存壁纸</button>'
+    + '</div></div></article>';
+}
+
+function renderReelCard(r, key) {
+  hlItemMap[key] = r;
+  const cover = r.cover || hlPosterUri(r.title, '进球集锦');
+  return '<article class="hl-journey">'
+    + '<div class="hl-journey-thumb" data-hl-key="' + escHtml(key) + '" data-hl-action="play">'
+    + '<img src="' + escHtml(cover) + '" alt="' + escHtml(r.title) + '" loading="lazy">'
+    + '<div class="hl-play">▶</div></div>'
+    + '<div class="hl-journey-body">'
+    + '<div class="hl-journey-title">' + escHtml(r.title) + ' <span class="hl-badge">B站</span></div>'
+    + '<div class="hl-card-actions">'
+    + '<button type="button" class="hl-btn" data-hl-key="' + escHtml(key) + '" data-hl-action="play">站内播放</button>'
+    + '<button type="button" class="hl-btn" data-hl-key="' + escHtml(key) + '" data-hl-action="save">保存封面</button>'
+    + '</div></div></article>';
+}
+
+function renderStarGallery(highlights) {
+  const tabsEl = document.getElementById('momentTabs');
+  const panesEl = document.getElementById('momentPanes');
+  if (!tabsEl || !panesEl) return;
+  const stars = (highlights && highlights.stars) || [];
+  if (!stars.length) {
+    tabsEl.innerHTML = '';
+    panesEl.innerHTML = '<div class="hl-empty">球星风采筹备中</div>';
+    return;
+  }
+
+  const tabs = [{ id: '全部', name: '全部', flag: '', number: '', photos: [] }].concat(stars);
+  let active = hlActiveStar;
+  if (!active || !tabs.some(function(s) { return s.id === active || s.name === active; })) {
+    active = '全部';
+    hlActiveStar = active;
+  }
+
+  tabsEl.innerHTML = tabs.map(function(s) {
+    const id = s.id || s.name;
+    const count = id === '全部'
+      ? stars.reduce(function(n, x) { return n + (x.photos || []).length; }, 0)
+      : (s.photos || []).length;
+    const cls = 'hl-tab' + (id === active ? ' active' : '') + (count ? ' has-dot' : '');
+    return '<button type="button" class="' + cls + '" data-hl-star="' + escHtml(id) + '">'
+      + escHtml(starTabLabel(s)) + '</button>';
+  }).join('');
+
+  const photos = collectStarPhotos(stars, active);
+  let html = '<div class="hl-pane active" data-hl-star-pane="' + escHtml(active) + '">';
+  if (!photos.length) {
+    html += '<div class="hl-empty">暂无图片</div>';
+  } else {
+    html += '<div class="hl-moments">';
+    photos.forEach(function(p, idx) {
+      html += renderPhotoCard(p, 'star-' + active + '-' + idx);
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  panesEl.innerHTML = html;
+
+  const prefetch = [];
+  photos.forEach(function(p) {
+    prefetch.push(momentCover(p) || p.cover);
+    if (p.coverDesktop) prefetch.push(p.coverDesktop);
+    if (p.cover) prefetch.push(p.cover);
+  });
+  const idx = tabs.findIndex(function(s) { return (s.id || s.name) === active; });
+  const next = tabs[idx + 1];
+  if (next && next.photos && next.photos[0]) {
+    prefetch.push(next.photos[0].cover);
+    prefetch.push(next.photos[0].coverDesktop);
+  }
+  prefetchMediaUrls(prefetch);
+}
+
+function renderMomentsByCountry(highlights) {
+  if (highlights && highlights.stars && highlights.stars.length) {
+    renderStarGallery(highlights);
+    return;
+  }
+  const tabsEl = document.getElementById('momentTabs');
+  const panesEl = document.getElementById('momentPanes');
+  if (!tabsEl || !panesEl) return;
+  const countries = (highlights && highlights.momentsByCountry) || [];
+  if (!countries.length) {
+    tabsEl.innerHTML = '';
+    panesEl.innerHTML = '<div class="hl-empty">球星风采筹备中</div>';
+    return;
+  }
+
+  let active = hlActiveCountry;
+  if (!active || !countries.some(c => c.team === active)) {
+    active = countries[0].team;
+    hlActiveCountry = active;
+  }
+
+  tabsEl.innerHTML = countries.map(function(c) {
+    const cls = 'hl-tab' + (c.team === active ? ' active' : '') + ((c.photos || []).length ? ' has-dot' : '');
+    return '<button type="button" class="' + cls + '" data-hl-country="' + escHtml(c.team) + '">'
+      + escHtml((c.flag || '') + ' ' + c.team) + '</button>';
+  }).join('');
+
+  panesEl.innerHTML = countries.map(function(c) {
+    const photos = c.photos || [];
+    let html = '<div class="hl-pane' + (c.team === active ? ' active' : '') + '" data-hl-country-pane="' + escHtml(c.team) + '">';
+    if (!photos.length) {
+      html += '<div class="hl-empty">筹备中</div>';
+    } else {
+      html += '<div class="hl-moments">';
+      photos.forEach(function(p, idx) {
+        html += renderPhotoCard(p, 'photo-' + c.team + '-' + idx);
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+function renderStageReels(highlights) {
+  const tabsEl = document.getElementById('reelTabs');
+  const panesEl = document.getElementById('reelPanes');
+  if (!tabsEl || !panesEl) return;
+  const stages = (highlights && highlights.stages) || [];
+  if (!stages.length) {
+    tabsEl.innerHTML = '';
+    panesEl.innerHTML = '<div class="hl-empty">暂无集锦内容</div>';
+    return;
+  }
+
+  let active = hlActiveStage;
+  if (!active || !stages.some(s => s.id === active)) {
+    let withContent = null;
+    for (let i = stages.length - 1; i >= 0; i--) {
+      if (stages[i].reels && stages[i].reels.length) { withContent = stages[i]; break; }
+    }
+    active = (withContent || stages[0]).id;
+    hlActiveStage = active;
+  }
+
+  tabsEl.innerHTML = stages.map(function(st) {
+    const has = st.reels && st.reels.length;
+    const cls = 'hl-tab' + (st.id === active ? ' active' : '') + (has ? ' has-dot' : '');
+    return '<button type="button" class="' + cls + '" data-hl-stage="' + escHtml(st.id) + '">' + escHtml(st.title) + '</button>';
+  }).join('');
+
+  panesEl.innerHTML = stages.map(function(st) {
+    const reels = st.reels || [];
+    let html = '<div class="hl-pane' + (st.id === active ? ' active' : '') + '" data-hl-pane="' + escHtml(st.id) + '">';
+    if (!reels.length) {
+      html += '<div class="hl-empty">' + escHtml(st.title) + '集锦筹备中' + (st.id === 'final' ? ' · 决赛结束后更新' : '') + '</div>';
+    } else {
+      html += '<div class="hl-journey-grid">';
+      reels.forEach(function(r, idx) {
+        html += renderReelCard(r, st.id + '-r-' + idx);
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+function renderHighlights(highlights) {
+  Object.keys(hlItemMap).forEach(function(k) { delete hlItemMap[k]; });
+  renderMomentsByCountry(highlights);
+  renderStageReels(highlights);
+}
+
+function bindHighlightUi() {
+  const momentTabs = document.getElementById('momentTabs');
+  const momentPanes = document.getElementById('momentPanes');
+  const reelTabs = document.getElementById('reelTabs');
+  const reelPanes = document.getElementById('reelPanes');
+  const journeysEl = document.getElementById('hlJourneys');
+  const overlay = document.getElementById('hlPlayerOverlay');
+  const closeBtn = document.getElementById('hlPlayerClose');
+  const photoOverlay = document.getElementById('hlPhotoOverlay');
+  const photoClose = document.getElementById('hlPhotoClose');
+  const photoSave = document.getElementById('hlPhotoSave');
+
+  if (momentTabs && !momentTabs._hlBound) {
+    momentTabs._hlBound = true;
+    momentTabs.addEventListener('click', function(e) {
+      const starBtn = e.target.closest('[data-hl-star]');
+      if (starBtn) {
+        hlActiveStar = starBtn.getAttribute('data-hl-star');
+        if (wcData) renderStarGallery(wcData.highlights);
+        return;
+      }
+      const btn = e.target.closest('[data-hl-country]');
+      if (!btn) return;
+      hlActiveCountry = btn.getAttribute('data-hl-country');
+      if (wcData) renderMomentsByCountry(wcData.highlights);
+    });
+  }
+  if (momentPanes && !momentPanes._hlBound) {
+    momentPanes._hlBound = true;
+    momentPanes.addEventListener('click', function(e) {
+      const el = e.target.closest('[data-hl-key][data-hl-action]');
+      if (!el) return;
+      const item = hlItemMap[el.getAttribute('data-hl-key')];
+      if (!item) return;
+      const action = el.getAttribute('data-hl-action');
+      if (action === 'photo') openPhotoLightbox(item, item.title, el.getAttribute('data-hl-key'));
+      if (action === 'save') saveHighlightThumb(item, item.title);
+    });
+  }
+  if (reelTabs && !reelTabs._hlBound) {
+    reelTabs._hlBound = true;
+    reelTabs.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-hl-stage]');
+      if (!btn) return;
+      hlActiveStage = btn.getAttribute('data-hl-stage');
+      if (wcData) renderStageReels(wcData.highlights);
+    });
+  }
+  if (reelPanes && !reelPanes._hlBound) {
+    reelPanes._hlBound = true;
+    reelPanes.addEventListener('click', function(e) {
+      const el = e.target.closest('[data-hl-key][data-hl-action]');
+      if (!el) return;
+      const item = hlItemMap[el.getAttribute('data-hl-key')];
+      if (!item) return;
+      const action = el.getAttribute('data-hl-action');
+      if (action === 'play') openHighlightPlayer(item, item.title);
+      if (action === 'save') saveHighlightThumb(item, item.title);
+    });
+  }
+  if (journeysEl && !journeysEl._hlBound) {
+    journeysEl._hlBound = true;
+    journeysEl.addEventListener('click', function(e) {
+      const el = e.target.closest('[data-hl-key][data-hl-action]');
+      if (!el) return;
+      const item = hlItemMap[el.getAttribute('data-hl-key')];
+      if (!item) return;
+      const action = el.getAttribute('data-hl-action');
+      if (action === 'play') openHighlightPlayer(item, item.title || item.team);
+      if (action === 'save') saveHighlightThumb(item, item.title || item.team);
+      if (action === 'search') window.open(mediaWatchUrl(item), '_blank', 'noopener,noreferrer');
+    });
+  }
+  if (closeBtn && !closeBtn._hlBound) {
+    closeBtn._hlBound = true;
+    closeBtn.addEventListener('click', closeHighlightPlayer);
+  }
+  const fsBtn = document.getElementById('hlPlayerFs');
+  if (fsBtn && !fsBtn._hlBound) {
+    fsBtn._hlBound = true;
+    fsBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      togglePlayerFullscreen();
+    });
+  }
+  if (overlay && !overlay._hlBound) {
+    overlay._hlBound = true;
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeHighlightPlayer();
+    });
+  }
+  if (!window._hlFsGlobalBound) {
+    window._hlFsGlobalBound = true;
+    window.addEventListener('orientationchange', function() {
+      const ov = document.getElementById('hlPlayerOverlay');
+      if (!ov || !ov.classList.contains('land-fs')) return;
+      // 用户真的转横后，取消 CSS 强制旋转
+      setTimeout(function() {
+        const portrait = window.matchMedia('(orientation: portrait) and (max-width: 900px)').matches;
+        ov.classList.toggle('need-rotate', portrait);
+      }, 250);
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      const ov = document.getElementById('hlPlayerOverlay');
+      if (ov && ov.classList.contains('land-fs')) {
+        setPlayerLandFs(false);
+        e.preventDefault();
+        return;
+      }
+      if (ov && ov.classList.contains('open')) closeHighlightPlayer();
+    });
+  }
+  if (photoClose && !photoClose._hlBound) {
+    photoClose._hlBound = true;
+    photoClose.addEventListener('click', closePhotoLightbox);
+  }
+  const photoPrev = document.getElementById('hlPhotoPrev');
+  const photoNext = document.getElementById('hlPhotoNext');
+  const photoBody = document.getElementById('hlPhotoBody');
+  if (photoPrev && !photoPrev._hlBound) {
+    photoPrev._hlBound = true;
+    photoPrev.addEventListener('click', function(e) {
+      e.stopPropagation();
+      navigatePhoto(-1);
+    });
+  }
+  if (photoNext && !photoNext._hlBound) {
+    photoNext._hlBound = true;
+    photoNext.addEventListener('click', function(e) {
+      e.stopPropagation();
+      navigatePhoto(1);
+    });
+  }
+  if (photoBody && !photoBody._hlBound) {
+    photoBody._hlBound = true;
+    photoBody.addEventListener('touchstart', function(e) {
+      if (!e.changedTouches || !e.changedTouches[0]) return;
+      hlPhotoTouchX = e.changedTouches[0].clientX;
+    }, { passive: true });
+    photoBody.addEventListener('touchend', function(e) {
+      if (!e.changedTouches || !e.changedTouches[0]) return;
+      const dx = e.changedTouches[0].clientX - hlPhotoTouchX;
+      if (Math.abs(dx) < 48) return;
+      navigatePhoto(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
+  if (photoOverlay && !photoOverlay._hlBound) {
+    photoOverlay._hlBound = true;
+    photoOverlay.addEventListener('click', function(e) {
+      if (e.target === photoOverlay) closePhotoLightbox();
+    });
+  }
+  if (photoSave && !photoSave._hlBound) {
+    photoSave._hlBound = true;
+    photoSave.addEventListener('click', function() {
+      if (hlPhotoItem) saveHighlightThumb(hlPhotoItem, hlPhotoItem.title);
+    });
+  }
+  if (!window._hlPhotoKeysBound) {
+    window._hlPhotoKeysBound = true;
+    document.addEventListener('keydown', function(e) {
+      const ov = document.getElementById('hlPhotoOverlay');
+      if (!ov || !ov.classList.contains('open')) return;
+      if (e.key === 'Escape') {
+        closePhotoLightbox();
+        e.preventDefault();
+        return;
+      }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const dir = e.key === 'ArrowLeft' ? -1 : 1;
+      // 不用系统按键连发（有延迟），按下即切、按住自定连切
+      if (hlPhotoKeyHold === e.key) return;
+      hlPhotoKeyHold = e.key;
+      navigatePhoto(dir);
+      if (hlPhotoKeyInterval) clearInterval(hlPhotoKeyInterval);
+      hlPhotoKeyInterval = setInterval(function() { navigatePhoto(dir); }, 140);
+    });
+    document.addEventListener('keyup', function(e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (hlPhotoKeyHold !== e.key) return;
+      stopPhotoKeyNav();
+    });
+    window.addEventListener('blur', stopPhotoKeyNav);
+  }
+}
+
+function renderJourneys(journeys) {
+  const el = document.getElementById('hlJourneys');
+  if (!el) return;
+  const list = journeys || [];
+  if (!list.length) {
+    el.innerHTML = '<div class="hl-empty">晋级之路筹备中</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(j, idx) {
+    const key = 'journey-' + idx;
+    hlItemMap[key] = j;
+    const hasVideo = !!j.bilibiliId;
+    const cover = j.cover || hlPosterUri(j.team, j.path || '');
+    const thumbAction = hasVideo ? 'play' : 'search';
+    return '<article class="hl-journey">'
+      + '<div class="hl-journey-thumb" data-hl-key="' + escHtml(key) + '" data-hl-action="' + thumbAction + '">'
+      + '<img src="' + escHtml(cover) + '" alt="' + escHtml(j.team) + '" loading="lazy">'
+      + (hasVideo ? '<div class="hl-play">▶</div>' : '')
+      + '</div>'
+      + '<div class="hl-journey-body">'
+      + '<div class="hl-journey-team"><span>' + escHtml(j.flag || '') + ' ' + escHtml(j.team) + '</span>'
+      + (j.status ? '<span class="hl-journey-status">' + escHtml(j.status) + '</span>' : '')
+      + '</div>'
+      + '<div class="hl-journey-path">' + escHtml(j.path || '') + '</div>'
+      + '<div class="hl-journey-title">' + escHtml(j.title || '')
+      + (hasVideo ? ' <span class="hl-badge">B站</span>' : ' <span class="hl-badge ext">搜B站</span>')
+      + '</div>'
+      + '<div class="hl-card-actions">'
+      + (hasVideo
+        ? '<button type="button" class="hl-btn" data-hl-key="' + escHtml(key) + '" data-hl-action="play">播放</button>'
+          + '<button type="button" class="hl-btn" data-hl-key="' + escHtml(key) + '" data-hl-action="save">保存封面</button>'
+        : '<a class="hl-btn" href="' + escHtml(j.searchUrl || mediaWatchUrl(j)) + '" target="_blank" rel="noopener noreferrer">B站搜索</a>')
+      + '</div></div></article>';
+  }).join('');
+}
+
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function() {});
+}
+
 function renderAll(data) {
   wcData = data;
   updateMeta(data);
@@ -972,6 +2247,9 @@ function renderAll(data) {
   renderResults(data.matches);
   renderKnockout(data.knockout);
   renderUpcoming(data.upcoming);
+  renderHighlights(data.highlights);
+  renderJourneys(data.highlights && data.highlights.journeys);
+  bindHighlightUi();
   renderPrediction(data.knockout);
   layoutBracketPreviews();
 }

@@ -103,15 +103,32 @@ function stripHtml(text) {
 
 function parseScoreCell(text) {
   const plain = decodeHtml(text);
-  const m = plain.match(/^(\d+)\s*[–—-]\s*(\d+)(?:\s*\(([^)]*)\))?$/);
-  if (!m) return null;
-  let suffix = '';
+  // 常见：2–1 | 2–2 (a.e.t.) | 2–2 (a.e.t.) (4–2 p) | 2–2 (4–2 pen.)
+  const m = plain.match(
+    /^(\d+)\s*[–—-]\s*(\d+)(?:\s*\(([^)]*)\))?(?:\s*\((\d+)\s*[–—-]\s*(\d+)\s*p(?:en)?\.?\s*\))?$/i
+  );
+  if (!m) {
+    // 兜底：先抓基础比分，再抓括号里的点球
+    const base = plain.match(/^(\d+)\s*[–—-]\s*(\d+)/);
+    if (!base) return null;
+    const pen = plain.match(/\((\d+)\s*[–—-]\s*(\d+)\s*p(?:en)?\.?\s*\)/i);
+    if (pen) return `${base[1]}-${base[2]}(${pen[1]}-${pen[2]}点)`;
+    if (/\(a\.?\s*e\.?\s*t\.?\)/i.test(plain) || /\bextra\b/i.test(plain)) {
+      return `${base[1]}-${base[2]}(加)`;
+    }
+    if (/\bpen/i.test(plain)) return `${base[1]}-${base[2]}(点)`;
+    return `${base[1]}-${base[2]}`;
+  }
+  let score = `${m[1]}-${m[2]}`;
+  if (m[4] && m[5]) return `${score}(${m[4]}-${m[5]}点)`;
   if (m[3]) {
     const note = m[3].toLowerCase();
-    if (note.includes('a.e.t') || note.includes('aet') || note.includes('extra')) suffix = '(加)';
-    else if (note.includes('pen')) suffix = '(点)';
+    const penInline = m[3].match(/(\d+)\s*[–—-]\s*(\d+)\s*p(?:en)?\.?/i);
+    if (penInline) return `${score}(${penInline[1]}-${penInline[2]}点)`;
+    if (note.includes('a.e.t') || note.includes('aet') || note.includes('extra')) return `${score}(加)`;
+    if (note.includes('pen')) return `${score}(点)`;
   }
-  return `${m[1]}-${m[2]}${suffix}`;
+  return score;
 }
 
 function teamsFromTitle(title) {
@@ -148,12 +165,38 @@ function winnerFromScore(score, a, b) {
   return null;
 }
 
-/** 从各场比赛的 h3 小节里解析比分，跳过对阵图里的脏数据 */
+function alreadyHaveMatch(found, g, a, b) {
+  return found.some(m => m.g === g && ((m.a === a && m.b === b) || (m.a === b && m.b === a)));
+}
+
+/** footballbox：决赛页常见无 h3，直接从 3 列表格取「队 | 比分 | 队」 */
+function parseFootballBoxRows(slice, g) {
+  const found = [];
+  const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let row;
+  while ((row = rowRe.exec(slice)) !== null) {
+    const cells = [...row[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m => m[1]);
+    if (cells.length !== 3) continue;
+    const score = parseScoreCell(cells[1]);
+    if (!score) continue;
+    const a = cn(cells[0]);
+    const b = cn(cells[2]);
+    if (!isKnownTeam(a) || !isKnownTeam(b) || a === b) continue;
+    if (alreadyHaveMatch(found, g, a, b)) continue;
+    found.push({ a, b, s: score, g, d: '', t: '' });
+  }
+  return found;
+}
+
+/** 从各场比赛的 h3 小节（+ footballbox 兜底）解析比分 */
 function parseKnockoutFromHtml(html, stage) {
   const STAGES = {
     r32: { start: /id="Round_of_32"/i, end: /id="Round_of_16"/i, g: '32强' },
     r16: { start: /id="Round_of_16"/i, end: /id="Quarterfinals"/i, g: '16强' },
     qf: { start: /id="Quarterfinals"/i, end: /id="Semifinals"/i, g: '8强' },
+    sf: { start: /id="Semifinals"/i, end: /id="Match_for_third_place"/i, g: '半决赛' },
+    // 决赛段无 h3 时靠 footballbox；结束锚 Notes / References 都能兜住
+    final: { start: /id="Final"/i, end: /id="(?:Notes|References|External_links)"/i, g: '决赛' },
   };
   const cfg = STAGES[stage];
   if (!cfg) return [];
@@ -202,19 +245,26 @@ function parseKnockoutFromHtml(html, stage) {
       if (isDrawScore(teamRow.s) && penRowScore) {
         finalScore = combineDrawAndPens(teamRow.s, penRowScore);
       }
-      found.push({ a: teamRow.a, b: teamRow.b, s: finalScore, g, d: '', t: '' });
+      if (!alreadyHaveMatch(found, g, teamRow.a, teamRow.b)) {
+        found.push({ a: teamRow.a, b: teamRow.b, s: finalScore, g, d: '', t: '' });
+      }
       continue;
     }
 
     // 有些场次的表格会把球队名拆成球员/事件行，导致无法从单行拿到队名；
     // 此时使用 h3 标题中的 "A vs B" 作为球队名兜底，比分取该小节内最后一个合法比分。
-    if (titleTeams && fallbackScore && !found.some(m => m.g === g && ((m.a === titleTeams[0] && m.b === titleTeams[1]) || (m.a === titleTeams[1] && m.b === titleTeams[0])))) {
+    if (titleTeams && fallbackScore && !alreadyHaveMatch(found, g, titleTeams[0], titleTeams[1])) {
       let finalScore = fallbackScore;
       if (isDrawScore(fallbackScore) && penRowScore) {
         finalScore = combineDrawAndPens(fallbackScore, penRowScore);
       }
       found.push({ a: titleTeams[0], b: titleTeams[1], s: finalScore, g, d: '', t: '' });
     }
+  }
+
+  // 决赛等段落：Wikipedia 常只有 footballbox、没有 "A vs B" 的 h3
+  for (const m of parseFootballBoxRows(slice, g)) {
+    if (!alreadyHaveMatch(found, g, m.a, m.b)) found.push(m);
   }
   return found;
 }
@@ -363,6 +413,23 @@ function sfSlotLabel(matches, a, b) {
   return winnerLabel(m.a, m.b, m.s, a);
 }
 
+function sfWinnerTeam(matches, a, b) {
+  if (!a || !b) return null;
+  const m = findMatch(matches, '半决赛', a, b);
+  if (!m?.s || m.s.includes('vs')) return null;
+  return winnerFromScore(m.s, m.a, m.b);
+}
+
+function championLabel(matches, a, b) {
+  if (!a || !b) return '🏆 ?';
+  const m = findMatch(matches, '决赛', a, b);
+  if (!m?.s || m.s.includes('vs')) return '🏆 ?';
+  const win = winnerFromScore(m.s, m.a, m.b);
+  if (!win) return '🏆 ?';
+  const e = emoji(win);
+  return e ? `${e} ${win} 🏆` : `${win} 🏆`;
+}
+
 function rebuildKnockout(ko, matches) {
   const leftR32 = [];
   const leftR16 = [];
@@ -396,6 +463,10 @@ function rebuildKnockout(ko, matches) {
   const rightSFB = qfWinnerFromR16Pairs(matches, BRACKET.right[2].r16, BRACKET.right[3].r16);
   ko.leftSF = sfSlotLabel(matches, leftSFA, leftSFB);
   ko.rightSF = sfSlotLabel(matches, rightSFA, rightSFB);
+
+  const finalistA = sfWinnerTeam(matches, leftSFA, leftSFB);
+  const finalistB = sfWinnerTeam(matches, rightSFA, rightSFB);
+  ko.champion = championLabel(matches, finalistA, finalistB);
   return ko;
 }
 
@@ -406,6 +477,8 @@ function inferLiveBadge(matches, upcoming) {
   if (qfDone < 4) return qfDone > 0 ? '8强进行中' : '8强即将开打';
   const sfDone = matches.filter(m => m.g === '半决赛' && m.s && !m.s.includes('vs')).length;
   if (sfDone < 2) return sfDone > 0 ? '半决赛进行中' : '半决赛即将开打';
+  const finalDone = matches.filter(m => m.g === '决赛' && m.s && !m.s.includes('vs')).length;
+  if (finalDone >= 1) return '决赛已结束 · 冠军诞生';
   const finalUp = upcoming.some(u => u.g === '决赛');
   if (finalUp) return '决赛即将开打';
   return '淘汰赛进行中';
@@ -449,22 +522,51 @@ function rebuildUpcoming(upcoming, ko) {
   for (const { side, d, t, venue } of SF_SCHEDULE) {
     const label = side === 'left' ? ko.leftSF : ko.rightSF;
     const m = upcomingMatchLabel(label);
-    if (m) sf.push({ d, m, t, g: '半决赛', venue });
-    else sf.push({ d, m: `半决赛 · ${venue}`, t, g: '半决赛', venue });
+    if (m) {
+      sf.push({ d, m, t, g: '半决赛', venue });
+    } else if (!label || label === '待定' || /\bvs\b/i.test(label)) {
+      // 未出线 / 仍带 vs 但对阵文案无法解析时，保留场馆占位
+      sf.push({ d, m: `半决赛 · ${venue}`, t, g: '半决赛', venue });
+    }
+    // 已完赛（格子是「西班牙 2-0」这类）不进预告
   }
-  const fin = [{
-    d: FINAL_SCHEDULE.d,
-    m: `🏆 决赛 · ${FINAL_SCHEDULE.venue}`,
-    t: FINAL_SCHEDULE.t,
-    g: '决赛',
-    venue: FINAL_SCHEDULE.venue,
-  }];
+  const fin = [];
+  // 从半决赛格子推断决赛对阵（「🇪🇸 西班牙 2-0」→ 西班牙）；冠军已出则不再预告
+  const leftFinalist = ko.leftSF && !/\bvs\b/i.test(ko.leftSF) && ko.leftSF !== '待定'
+    ? stripFlags(ko.leftSF).replace(/\s*\d.*$/, '').trim()
+    : null;
+  const rightFinalist = ko.rightSF && !/\bvs\b/i.test(ko.rightSF) && ko.rightSF !== '待定'
+    ? stripFlags(ko.rightSF).replace(/\s*\d.*$/, '').trim()
+    : null;
+  const championSet = ko.champion && ko.champion !== '🏆 ?';
+  if (!championSet) {
+    if (leftFinalist && rightFinalist && isKnownTeam(leftFinalist) && isKnownTeam(rightFinalist)) {
+      const m = upcomingMatchLabel(`${leftFinalist} vs ${rightFinalist}`);
+      fin.push({
+        d: FINAL_SCHEDULE.d,
+        m: m || `${leftFinalist} vs ${rightFinalist}`,
+        t: FINAL_SCHEDULE.t,
+        g: '决赛',
+        venue: FINAL_SCHEDULE.venue,
+      });
+    } else {
+      fin.push({
+        d: FINAL_SCHEDULE.d,
+        m: `🏆 决赛 · ${FINAL_SCHEDULE.venue}`,
+        t: FINAL_SCHEDULE.t,
+        g: '决赛',
+        venue: FINAL_SCHEDULE.venue,
+      });
+    }
+  }
   return [...qf, ...sf, ...fin, ...rest];
 }
 
 function inferFooterNote(matches, upcoming) {
   const qfDone = matches.filter(m => m.g === '8强' && m.s && !m.s.includes('vs')).length;
   const sfDone = matches.filter(m => m.g === '半决赛' && m.s && !m.s.includes('vs')).length;
+  const finalDone = matches.filter(m => m.g === '决赛' && m.s && !m.s.includes('vs')).length;
+  if (finalDone >= 1) return '决赛已结束 · 2026 美加墨世界杯落幕';
   if (sfDone >= 2) return '半决赛已结束 · 决赛 7.20 纽约';
   if (sfDone > 0) return '半决赛进行中 · 决赛 7.20 纽约';
   if (qfDone >= 4) return '8强已结束 · 半决赛 7.15 开打 · 决赛 7.20 纽约';
@@ -475,6 +577,8 @@ function inferFooterNote(matches, upcoming) {
 async function main() {
   const raw = readFileSync(DATA_PATH, 'utf8');
   const data = JSON.parse(raw);
+  // 进球瞬间 / 集锦为手工维护字段，写回时必须保留
+  const preservedHighlights = data.highlights;
   let changed = false;
   let log = [];
 
@@ -487,8 +591,10 @@ async function main() {
 
   try {
     const html = await fetchWikiHtml();
-    for (const stage of ['r16', 'qf']) {
+    const stageCounts = [];
+    for (const stage of ['r16', 'qf', 'sf', 'final']) {
       const parsed = parseKnockoutFromHtml(html, stage);
+      stageCounts.push(`${stage}=${parsed.length}`);
       if (!parsed.length) continue;
       const { matches, added } = mergeMatches(data.matches, parsed);
       if (added) {
@@ -497,6 +603,8 @@ async function main() {
         log.push(`${stage} +${added}`);
       }
     }
+    // 每轮都打阶段计数，方便发现「维基有了但解析为 0」
+    console.log('[wiki]', stageCounts.join(' '));
   } catch (e) {
     console.error('[warn] Wikipedia:', e.message);
   }
@@ -529,6 +637,8 @@ async function main() {
     data.footerNote = footer;
     changed = true;
   }
+
+  if (preservedHighlights) data.highlights = preservedHighlights;
 
   if (changed) {
     data.updatedAt = new Date().toISOString();
