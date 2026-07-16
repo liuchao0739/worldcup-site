@@ -1817,12 +1817,40 @@ function closePhotoLightbox() {
   updatePhotoNavUi();
 }
 
+async function downloadImageDirect(imageUrl, title) {
+  const safe = (title || '球星风采').replace(/[\\/:*?"<>|]/g, '_');
+  let ext = 'jpg';
+  const m = String(imageUrl).match(/\.(jpe?g|png|webp|gif)(\?|$)/i);
+  if (m) ext = m[1].toLowerCase().replace('jpeg', 'jpg');
+  else if (String(imageUrl).indexOf('image/svg') >= 0) ext = 'svg';
+  const a = document.createElement('a');
+  a.download = safe + '.' + ext;
+  try {
+    const res = await fetch(imageUrl);
+    const blob = await res.blob();
+    a.href = URL.createObjectURL(blob);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function() { URL.revokeObjectURL(a.href); }, 30000);
+  } catch (e) {
+    // 跨域等失败时退回直链下载
+    a.href = imageUrl;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
 function saveHighlightThumb(item, title) {
   const safeTitle = title || item.title || '球星风采';
   const cover = momentCover(item) || item.cover || hlPosterUri(safeTitle, item.match || item.path || '');
-  showBracketSaveOverlay(cover, safeTitle, isTouchMobile()
-    ? '长按上方高清图，选择「保存图片」到相册'
-    : '可点击下方按钮分享，或右键图片另存为');
+  if (!isTouchMobile()) {
+    // 电脑端：直接弹浏览器「另存为」，不再叠加预览弹层
+    downloadImageDirect(cover, safeTitle);
+    return;
+  }
+  showBracketSaveOverlay(cover, safeTitle, '长按上方高清图，选择「保存图片」到相册');
 }
 
 function renderPhotoCard(m, key) {
